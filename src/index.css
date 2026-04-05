@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 197 71% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 18% 95%;
+    --secondary-foreground: 215 25% 15%;
+
+    --muted: 210 14% 93%;
+    --muted-foreground: 215 12% 50%;
+
+    --accent: 170 55% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 197 71% 38%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 215 28% 17%;
+    --sidebar-foreground: 210 15% 85%;
+    --sidebar-primary: 197 71% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 22%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 215 22% 24%;
+    --sidebar-ring: 197 71% 52%;
+    --sidebar-muted: 215 15% 40%;
+
+    --success: 152 56% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 207 90% 54%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-1: 197 71% 38%;
+    --chart-2: 170 55% 42%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 152 56% 42%;
+    --chart-5: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 215 28% 10%;
+    --foreground: 210 15% 90%;
+    --card: 215 28% 14%;
+    --card-foreground: 210 15% 90%;
+    --popover: 215 28% 14%;
+    --popover-foreground: 210 15% 90%;
+    --primary: 197 71% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 25% 20%;
+    --secondary-foreground: 210 15% 90%;
+    --muted: 215 20% 18%;
+    --muted-foreground: 215 12% 55%;
+    --accent: 170 55% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 22% 22%;
+    --input: 215 22% 22%;
+    --ring: 197 71% 52%;
+    --sidebar-background: 215 32% 10%;
+    --sidebar-foreground: 210 15% 85%;
+    --sidebar-primary: 197 71% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 15%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 215 22% 16%;
+    --sidebar-ring: 197 71% 52%;
+    --sidebar-muted: 215 15% 40%;
+    --success: 152 56% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 207 90% 54%;
+    --info-foreground: 0 0% 100%;
+    --chart-1: 197 71% 52%;
+    --chart-2: 170 55% 42%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 152 56% 42%;
+    --chart-5: 0 72% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer utilities {
+  .stat-card {
+    @apply bg-card rounded-lg border p-5 shadow-sm transition-shadow hover:shadow-md;
+  }
+
+  .page-header {
+    @apply mb-6 flex items-center justify-between;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .medical-timeline::before {
+    content: '';
+    @apply absolute left-4 top-0 bottom-0 w-0.5 bg-border;
+  }
+
+  .status-badge-active {
+    @apply inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium;
+    color: hsl(var(--success));
+  }
+
+  .status-badge-warning {
+    @apply inline-flex items-center rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium;
+    color: hsl(var(--warning));
+  }
+
+  .status-badge-danger {
+    @apply inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium;
+    color: hsl(var(--destructive));
+  }
+
+  .status-badge-info {
+    @apply inline-flex items-center rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium;
+    color: hsl(var(--info));
+  }
+}
