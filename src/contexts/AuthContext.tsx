@@ -6,7 +6,7 @@ import React, {
     useCallback,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase, type UserProfile } from "@/lib/supabase";
+import { supabase, type UserProfile, type UserRole } from "@/lib/supabase";
 
 // ---------- context shape ----------
 
@@ -18,6 +18,12 @@ interface AuthContextValue {
     signIn: (
         email: string,
         password: string
+    ) => Promise<{ error: string | null }>;
+    signUp: (
+        email: string,
+        password: string,
+        fullName: string,
+        role: UserRole
     ) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
 }
@@ -66,13 +72,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         // 1. Recover existing session
-        supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-            setSession(existingSession);
-            setUser(existingSession?.user ?? null);
-            loadProfile(existingSession?.user ?? null).finally(() =>
-                setLoading(false)
-            );
-        });
+        supabase.auth
+            .getSession()
+            .then(({ data: { session: existingSession } }) => {
+                setSession(existingSession);
+                setUser(existingSession?.user ?? null);
+                loadProfile(existingSession?.user ?? null).finally(() =>
+                    setLoading(false)
+                );
+            });
 
         // 2. Subscribe to auth changes
         const {
@@ -101,9 +109,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (error) {
-                // Translate common Supabase errors to Portuguese
                 if (error.message === "Invalid login credentials") {
                     return { error: "E-mail ou palavra-passe incorrectos." };
+                }
+                if (error.message === "Email not confirmed") {
+                    return {
+                        error:
+                            "E-mail ainda não confirmado. Verifique a sua caixa de entrada.",
+                    };
+                }
+                return { error: error.message };
+            }
+
+            return { error: null };
+        },
+        []
+    );
+
+    const signUp = useCallback(
+        async (
+            email: string,
+            password: string,
+            fullName: string,
+            role: UserRole
+        ): Promise<{ error: string | null }> => {
+            const { error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        full_name: fullName,
+                        role,
+                    },
+                },
+            });
+
+            if (error) {
+                if (error.message === "User already registered") {
+                    return { error: "Este e-mail já está registado." };
+                }
+                if (
+                    error.message.includes("Password should be at least 6 characters")
+                ) {
+                    return {
+                        error: "A palavra-passe deve ter pelo menos 6 caracteres.",
+                    };
                 }
                 return { error: error.message };
             }
@@ -120,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AuthContext.Provider
-            value={{ session, user, profile, loading, signIn, signOut }}
+            value={{ session, user, profile, loading, signIn, signUp, signOut }}
         >
             {children}
         </AuthContext.Provider>
