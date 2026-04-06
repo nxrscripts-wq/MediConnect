@@ -7,8 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:check": "tsc --noEmit && npm run build",
     "lint": "eslint .",
+    "lint:ci": "eslint . --max-warnings 0",
     "preview": "vite preview",
+    "preview:prod": "npm run build && npm run preview",
     "test": "vitest run",
     "test:watch": "vitest"
   },

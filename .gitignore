@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vercel & Production
+.env
+.env.local
+.env.production
+.env.*.local
+dist/
+node_modules/
+.vercel/
+*.log
+.DS_Store
+Thumbs.db
