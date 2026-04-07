@@ -1,190 +1,219 @@
-import { useState } from "react";
-import { Search, Plus, Filter, QrCode, ChevronRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Plus,
+  Users,
+  AlertTriangle,
+  ChevronRight,
+  ChevronLeft
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const mockPatients = [
-  { id: "PAC-20250001", name: "Maria da Graça Neto", dob: "1985-03-15", gender: "F", phone: "+244 923 456 789", municipality: "Luanda (Cazenga)", province: "Luanda", lastVisit: "2025-02-18", status: "Ativo" },
-  { id: "PAC-20250002", name: "José Manuel Pereira", dob: "1972-07-22", gender: "M", phone: "+244 912 345 678", municipality: "Viana", province: "Luanda", lastVisit: "2025-02-20", status: "Ativo" },
-  { id: "PAC-20250003", name: "Ana Paula Domingos", dob: "1990-11-08", gender: "F", phone: "+244 934 567 890", municipality: "Lobito", province: "Benguela", lastVisit: "2025-02-21", status: "Ativo" },
-  { id: "PAC-20250004", name: "Carlos Alberto João", dob: "1968-01-30", gender: "M", phone: "+244 945 678 901", municipality: "Huambo (Sede)", province: "Huambo", lastVisit: "2025-01-15", status: "Inativo" },
-  { id: "PAC-20250005", name: "Francisca Tchissola", dob: "1995-06-12", gender: "F", phone: "+244 956 789 012", municipality: "Cacuaco", province: "Luanda", lastVisit: "2025-02-19", status: "Ativo" },
-  { id: "PAC-20250006", name: "Pedro Sebastião Mário", dob: "1988-09-25", gender: "M", phone: "+244 922 111 333", municipality: "Lubango", province: "Huíla", lastVisit: "2025-02-10", status: "Ativo" },
-];
+} from '@/components/ui/dialog'
+import { usePatients } from '@/hooks/usePatients'
+import { usePatientMutations } from '@/hooks/usePatientMutations'
+import { PatientSearchBar } from '@/components/patients/PatientSearchBar'
+import { PatientStatusBadge } from '@/components/patients/PatientStatusBadge'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { formatDate } from '@/lib/exportUtils'
+import { cn } from '@/lib/utils'
 
 export default function Patients() {
-  const [search, setSearch] = useState("");
-  const [showNewPatient, setShowNewPatient] = useState(false);
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+  const [showNewDialog, setShowNewDialog] = useState(false)
 
-  const filtered = mockPatients.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase()) ||
-      p.municipality.toLowerCase().includes(search.toLowerCase()) ||
-      p.province.toLowerCase().includes(search.toLowerCase())
-  );
+  const {
+    patients,
+    total,
+    totalPages,
+    currentPage,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    searchTerm,
+    setSearch,
+    nextPage,
+    previousPage,
+    hasNextPage,
+    hasPreviousPage
+  } = usePatients()
+
+  const { createPatient, isCreating } = usePatientMutations()
+
+  const handleCreate = async (data: any) => {
+    try {
+      await createPatient(data)
+      setShowNewDialog(false)
+    } catch (err) {
+      // toast is handled in mutation
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Cadastro de Pacientes</h1>
-          <p className="page-subtitle">{mockPatients.length} pacientes registados</p>
+          <h1 className="page-title">Registo Nacional de Pacientes</h1>
+          <p className="page-subtitle">
+            {isLoading ? 'A carregar base de dados...' : `${total} pacientes registados no sistema`}
+          </p>
         </div>
-        <Dialog open={showNewPatient} onOpenChange={setShowNewPatient}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              Novo Paciente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Registar Novo Paciente</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input placeholder="Nome do paciente" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nº do BI</Label>
-                  <Input placeholder="Bilhete de Identidade" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Data de Nascimento</Label>
-                  <Input type="date" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Género</Label>
-                  <Select>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M">Masculino</SelectItem>
-                      <SelectItem value="F">Feminino</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input placeholder="+244 9XX XXX XXX" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Província</Label>
-                  <Select>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla","Icolo e Bengo","Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire"].map(p => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Município</Label>
-                  <Input placeholder="Município" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Endereço</Label>
-                  <Input placeholder="Bairro, rua..." />
-                </div>
-              </div>
-              <Button className="w-full mt-2" onClick={() => setShowNewPatient(false)}>
-                Registar Paciente
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setShowNewDialog(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Paciente
+        </Button>
       </div>
 
-      {/* Search bar */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, ID, município ou província..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Registar Novo Paciente</DialogTitle>
+          </DialogHeader>
+          <PatientForm
+            onSubmit={handleCreate}
+            onCancel={() => setShowNewDialog(false)}
+            isLoading={isCreating}
           />
-        </div>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon">
-          <QrCode className="h-4 w-4" />
-        </Button>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex items-center gap-4">
+        <PatientSearchBar
+          value={searchTerm}
+          onChange={setSearch}
+          isFetching={isFetching && !!searchTerm}
+        />
       </div>
 
-      {/* Patient list */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="px-4 py-3 font-medium text-muted-foreground">ID</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">Nome</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Nascimento</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Município</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Província</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Última Visita</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((patient) => (
-                  <tr
-                    key={patient.id}
-                    className="border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/pacientes/${patient.id}`)}
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{patient.id}</td>
-                    <td className="px-4 py-3 font-medium">{patient.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{patient.dob}</td>
-                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{patient.municipality}</td>
-                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{patient.province}</td>
-                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{patient.lastVisit}</td>
-                    <td className="px-4 py-3">
-                      <span className={patient.status === "Ativo" ? "status-badge-active" : "status-badge-warning"}>
-                        {patient.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </td>
+      {isLoading ? (
+        <Card className="border-none shadow-none bg-transparent">
+          <CardContent className="p-0 space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-16 w-full bg-muted/40 animate-pulse rounded-lg" />
+            ))}
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent className="p-12 flex flex-col items-center text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive mb-4" />
+            <h3 className="text-lg font-bold text-destructive">Erro ao carregar pacientes</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              {(error as Error).message || 'Ocorreu um problema ao comunicar com o servidor.'}
+            </p>
+            <Button variant="outline" className="mt-6" onClick={() => refetch()}>
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      ) : patients.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="p-16 flex flex-col items-center text-center">
+            <div className="bg-muted rounded-full p-6 mb-4">
+              <Users className="h-10 w-10 text-muted-foreground opacity-40" />
+            </div>
+            <h3 className="text-lg font-bold text-foreground">
+              {searchTerm ? 'Nenhum resultado encontrado' : 'Unidade sem pacientes'}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+              {searchTerm
+                ? `Não encontramos registros para o termo "${searchTerm}".`
+                : 'Esta unidade sanitária ainda não possui pacientes cadastrados no sistema.'}
+            </p>
+            {!searchTerm && (
+              <Button variant="outline" className="mt-6" onClick={() => setShowNewDialog(true)}>
+                Registar primeiro paciente
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <Card className={cn("transition-opacity", isFetching && "opacity-50")}>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left bg-muted/20">
+                    <th className="px-4 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Cód. PAC</th>
+                    <th className="px-4 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Nome do Paciente</th>
+                    <th className="px-4 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider hidden md:table-cell">Nascimento</th>
+                    <th className="px-4 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider hidden lg:table-cell">Província</th>
+                    <th className="px-4 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Municipio</th>
+                    <th className="px-4 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider border-r">Status</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody className="divide-y">
+                  {patients.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="group hover:bg-muted/40 cursor-pointer"
+                      onClick={() => navigate(`/pacientes/${p.patient_code}`)}
+                    >
+                      <td className="px-4 py-4 font-mono text-xs text-muted-foreground">{p.patient_code}</td>
+                      <td className="px-4 py-4">
+                        <div className="font-bold text-foreground/90">{p.full_name}</div>
+                        <div className="md:hidden text-[10px] text-muted-foreground">{p.municipality}</div>
+                      </td>
+                      <td className="px-4 py-4 text-muted-foreground hidden md:table-cell">
+                        {formatDate(p.date_of_birth)}
+                      </td>
+                      <td className="px-4 py-4 text-muted-foreground hidden lg:table-cell">
+                        {p.province}
+                      </td>
+                      <td className="px-4 py-4 text-muted-foreground">
+                        {p.municipality}
+                      </td>
+                      <td className="px-4 py-4 border-r">
+                        <PatientStatusBadge isActive={p.is_active} />
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 bg-muted/10 rounded-lg border">
+              <span className="text-xs text-muted-foreground">
+                Página <strong>{currentPage}</strong> de {totalPages}
+                <span className="mx-1">•</span>
+                <strong>{total}</strong> pacientes registados
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={previousPage}
+                  disabled={!hasPreviousPage}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-3 w-3" /> Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={nextPage}
+                  disabled={!hasNextPage}
+                  className="gap-1"
+                >
+                  Próxima <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
-  );
+  )
 }

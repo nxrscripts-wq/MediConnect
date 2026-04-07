@@ -1,238 +1,328 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
-  FileText,
-  Syringe,
-  Pill,
-  TestTube,
-  BedDouble,
-  Stethoscope,
-  QrCode,
+  Edit,
+  UserRoundX,
+  AlertTriangle,
   Calendar,
-  User,
-  Phone,
+  Stethoscope,
+  TestTube,
+  Pill,
   MapPin,
-  Upload,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+  Phone,
+  User,
+  HeartPulse
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { usePatientDetail } from '@/hooks/usePatientDetail'
+import { usePatientMutations } from '@/hooks/usePatientMutations'
+import { PatientStatusBadge } from '@/components/patients/PatientStatusBadge'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { formatDate } from '@/lib/exportUtils'
+import { cn } from '@/lib/utils'
 
-const patientData = {
-  id: "PAC-20250001",
-  name: "Maria da Graça Neto",
-  dob: "1985-03-15",
-  age: 39,
-  gender: "Feminino",
-  phone: "+244 923 456 789",
-  province: "Luanda",
-  municipality: "Cazenga",
-  address: "Bairro Hoji Ya Henda, Rua 14, Casa 23",
-  bloodType: "A+",
-  bi: "000123456LA042",
-  allergies: ["Penicilina", "Dipirona"],
-};
-
+// Temporary mock timeline
 const timeline = [
   {
     date: "2025-02-18",
     time: "09:30",
-    type: "consultation" as const,
+    type: "consultation",
     title: "Consulta — Clínica Geral",
     doctor: "Dr. António Mendes",
-    description: "Queixa de dores abdominais. Solicitados exames laboratoriais.",
+    description: "Queixa de dores abdominais persistentes. Solicitados exames laboratoriais.",
     icon: Stethoscope,
   },
   {
     date: "2025-02-10",
     time: "14:00",
-    type: "exam" as const,
+    type: "exam",
     title: "Exame — Hemograma Completo",
-    doctor: "Lab. Hospital Josina Machel",
+    doctor: "Lab. Central do Moxico",
     description: "Resultados dentro dos parâmetros normais. Hemoglobina: 12.5 g/dL.",
     icon: TestTube,
-  },
-  {
-    date: "2025-01-28",
-    time: "10:00",
-    type: "prescription" as const,
-    title: "Prescrição — Paracetamol 500mg",
-    doctor: "Dr. António Mendes",
-    description: "Tomar 1 comprimido a cada 8 horas durante 5 dias.",
-    icon: Pill,
-  },
-  {
-    date: "2025-01-15",
-    time: "08:30",
-    type: "vaccine" as const,
-    title: "Vacina — Febre Amarela (Reforço)",
-    doctor: "Enf. Teresa Caxita",
-    description: "Vacina administrada conforme o PAV. Lote: FA2024-AO. Sem reacções adversas.",
-    icon: Syringe,
-  },
-  {
-    date: "2024-11-20",
-    time: "16:00",
-    type: "hospitalization" as const,
-    title: "Internamento — Cirurgia Menor",
-    doctor: "Dr. Carlos Bumba",
-    description: "Apendicectomia laparoscópica. Alta após 48h. Recuperação sem complicações.",
-    icon: BedDouble,
-  },
-];
-
-const typeColors = {
-  consultation: "bg-primary/10 text-primary",
-  exam: "bg-info/10 text-info",
-  prescription: "bg-accent/10 text-accent",
-  vaccine: "bg-success/10 text-success",
-  hospitalization: "bg-warning/10 text-warning",
-};
+  }
+]
 
 export default function PatientDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [showEditDialog, setShowEditDialog] = useState(false)
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/pacientes")} className="h-8 w-8">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="page-title">{patientData.name}</h1>
-          <p className="page-subtitle font-mono">{id || patientData.id}</p>
+  const { patient, isLoading, error } = usePatientDetail(id!)
+  const { updatePatient, deactivatePatient, isUpdating, isDeactivating } = usePatientMutations()
+
+  function calcAge(dob: string): number {
+    if (!dob) return 0
+    const birth = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+    return age
+  }
+
+  const handleUpdate = async (data: any) => {
+    try {
+      await updatePatient({ id: patient!.id, ...data })
+      setShowEditDialog(false)
+    } catch (err) { }
+  }
+
+  const handleDeactivate = async () => {
+    if (window.confirm('Tem a certeza que deseja desactivar este paciente?')) {
+      try {
+        await deactivatePatient(patient!.id)
+      } catch (err) { }
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="flex flex-col gap-2">
+          <div className="h-10 w-64 bg-muted rounded" />
+          <div className="flex gap-2">
+            <div className="h-6 w-20 bg-muted rounded" />
+            <div className="h-6 w-20 bg-muted rounded" />
+          </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <QrCode className="h-4 w-4" />
-          QR Code
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-32 bg-muted rounded" />
+          <div className="h-32 bg-muted rounded" />
+          <div className="h-32 bg-muted rounded" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center text-center">
+        <AlertTriangle className="h-16 w-16 text-destructive/20 mb-4" />
+        <h2 className="text-2xl font-bold">Paciente não encontrado</h2>
+        <p className="text-muted-foreground mt-2 max-w-sm">
+          O registro solicitado não foi encontrado ou está inacessível no momento.
+        </p>
+        <Button className="mt-8" onClick={() => navigate('/pacientes')}>
+          Voltar à Lista de Pacientes
         </Button>
       </div>
+    )
+  }
 
-      {/* Patient Info Card */}
-      <Card>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 text-sm">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Idade</p>
-              <p className="font-medium">{patientData.age} anos</p>
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/pacientes')}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{patient.full_name}</h1>
+              <PatientStatusBadge isActive={patient.is_active} />
             </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Género</p>
-              <p className="font-medium">{patientData.gender}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Tipo Sanguíneo</p>
-              <p className="font-medium">{patientData.bloodType}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Nº BI</p>
-              <p className="font-medium font-mono text-xs">{patientData.bi}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</p>
-              <p className="font-medium">{patientData.phone}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Município</p>
-              <p className="font-medium">{patientData.municipality}, {patientData.province}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Alergias</p>
-              <div className="flex flex-wrap gap-1">
-                {patientData.allergies.map((a) => (
-                  <span key={a} className="status-badge-danger">{a}</span>
-                ))}
-              </div>
-            </div>
+            <p className="text-sm font-mono text-muted-foreground">{patient.patient_code}</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowEditDialog(true)}>
+            <Edit className="h-4 w-4" /> Editar
+          </Button>
+          {patient.is_active && (
+            <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={handleDeactivate}>
+              <UserRoundX className="h-4 w-4" /> Desactivar
+            </Button>
+          )}
+        </div>
+      </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="timeline" className="w-full">
-        <TabsList>
-          <TabsTrigger value="timeline">Linha do Tempo</TabsTrigger>
-          <TabsTrigger value="consultations">Consultas</TabsTrigger>
-          <TabsTrigger value="exams">Exames</TabsTrigger>
-          <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>
-          <TabsTrigger value="vaccines">Vacinas</TabsTrigger>
-        </TabsList>
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Prontuário do Paciente</DialogTitle>
+          </DialogHeader>
+          <PatientForm
+            initialData={patient}
+            onSubmit={handleUpdate}
+            onCancel={() => setShowEditDialog(false)}
+            isLoading={isUpdating}
+          />
+        </DialogContent>
+      </Dialog>
 
-        <TabsContent value="timeline" className="mt-4">
-          <div className="relative medical-timeline space-y-4 pl-10">
-            {timeline.map((item, i) => (
-              <div key={i} className="relative animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
-                <div className={`absolute -left-10 top-1 flex h-8 w-8 items-center justify-center rounded-full ${typeColors[item.type]}`}>
-                  <item.icon className="h-4 w-4" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="bg-primary/10 p-3 rounded-full"><User className="h-5 w-5 text-primary" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Idade / Género</p>
+              <p className="font-bold">{calcAge(patient.date_of_birth)} anos • {patient.gender}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="bg-blue-500/10 p-3 rounded-full"><Phone className="h-5 w-5 text-blue-500" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Contacto</p>
+              <p className="font-bold">{patient.phone || 'N/A'}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="bg-amber-500/10 p-3 rounded-full"><MapPin className="h-5 w-5 text-amber-500" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Localização</p>
+              <p className="font-bold">{patient.municipality}, {patient.province}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="bg-rose-500/10 p-3 rounded-full"><HeartPulse className="h-5 w-5 text-rose-500" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Sangue / BI</p>
+              <p className="font-bold">{patient.blood_type || 'Desconhecido'} • {patient.national_id || 'N/A'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Tabs defaultValue="history">
+            <TabsList className="bg-muted/50 p-1">
+              <TabsTrigger value="history" className="gap-2"><Calendar className="h-4 w-4" /> Prontuário</TabsTrigger>
+              <TabsTrigger value="clinical">Clínico</TabsTrigger>
+              <TabsTrigger value="contacts">Contactos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="history" className="mt-4 space-y-4">
+              <div className="relative pl-6 border-l-2 border-muted space-y-8 py-4">
+                {timeline.map((item, idx) => (
+                  <div key={idx} className="relative">
+                    <div className="absolute -left-[35px] top-0 bg-background p-1 border-2 border-muted rounded-full">
+                      <item.icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-bold text-sm">{item.title}</h4>
+                            <p className="text-xs text-primary font-medium">{item.doctor}</p>
+                          </div>
+                          <span className="text-[10px] font-bold text-muted-foreground">{formatDate(item.date)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic">"{item.description}"</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+                <div className="p-4 bg-muted/20 border border-dashed rounded-lg text-center">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                    Informação Mock — Prontuários Reais em Desenvolvimento
+                  </p>
                 </div>
-                <Card className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
+              </div>
+            </TabsContent>
+
+            <TabsContent value="clinical" className="mt-4 space-y-6">
+              <Card>
+                <CardContent className="p-6 space-y-6">
+                  <div>
+                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3"><HeartPulse className="h-4 w-4 text-rose-500" /> Alergias Conhecidas</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {patient.allergies.length > 0 ? (
+                        patient.allergies.map(a => <span key={a} className="px-3 py-1 bg-rose-500/10 text-rose-600 rounded-full text-xs font-bold">{a}</span>)
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Nenhuma alergia registada.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3"><Activity className="h-4 w-4 text-primary" /> Condições Crónicas</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {patient.chronic_conditions.length > 0 ? (
+                        patient.chronic_conditions.map(c => <span key={c} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">{c}</span>)
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Nenhuma condição crónica registada.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold mb-2">Observações Gerais</h4>
+                    <p className="text-xs text-muted-foreground bg-muted/30 p-4 rounded-lg">{patient.notes || 'Sem observações adicionais.'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contacts" className="mt-4">
+              <Card>
+                <CardContent className="p-6">
+                  <h4 className="text-sm font-bold mb-4">Contactos de Emergência</h4>
+                  {patient.emergency_contact_name ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <h3 className="text-sm font-semibold">{item.title}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">{item.doctor}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Nome</p>
+                        <p className="font-bold">{patient.emergency_contact_name}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-muted-foreground">{item.date}</p>
-                        <p className="text-xs text-muted-foreground">{item.time}</p>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Parentesco</p>
+                        <p className="font-bold text-primary">{patient.emergency_contact_relation}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Telefone</p>
+                        <p className="font-bold">{patient.emergency_contact_phone}</p>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">Nenhum contacto de emergência registado.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-        <TabsContent value="consultations" className="mt-4">
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              <Stethoscope className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Histórico completo de consultas do paciente</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="exams" className="mt-4">
+        <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold">Exames Laboratoriais</h3>
-                <Button size="sm" variant="outline" className="gap-1.5">
-                  <Upload className="h-3.5 w-3.5" />
-                  Upload PDF
-                </Button>
+              <h4 className="text-sm font-bold mb-4">Unidade Sanitária de Registo</h4>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary">
+                  US
+                </div>
+                <div>
+                  <p className="text-sm font-bold leading-none">{patient.health_units?.name || 'Unidade Desconhecida'}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{patient.health_units?.municipality}, {patient.health_units?.province}</p>
+                </div>
               </div>
-              <div className="text-center py-4 text-muted-foreground">
-                <TestTube className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Resultados de exames serão listados aqui</p>
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground uppercase font-bold">Inscrito em</span>
+                  <span className="font-bold">{formatDate(patient.created_at)}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground uppercase font-bold">Última Atualização</span>
+                  <span className="font-bold">{formatDate(patient.updated_at)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="prescriptions" className="mt-4">
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              <Pill className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Histórico de prescrições médicas</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="vaccines" className="mt-4">
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              <Syringe className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Caderneta de vacinação digital (PAV)</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

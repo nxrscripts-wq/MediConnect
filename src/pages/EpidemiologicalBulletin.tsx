@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Save, Printer, Send, Download } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { exportBulletinPdf } from "@/utils/exportBulletinPdf";
 
 const ageGroups = [
@@ -76,7 +76,6 @@ const months = [
 type CellKey = string; // `${diseaseName}_${sub}_${type}_${ageGroup}` where type = "cases" | "deaths"
 
 export default function EpidemiologicalBulletin() {
-  const { toast } = useToast();
   const [formData, setFormData] = useState<Record<CellKey, string>>({});
   const [bulletinNumber, setBulletinNumber] = useState("");
   const [healthUnit, setHealthUnit] = useState("");
@@ -98,15 +97,57 @@ export default function EpidemiologicalBulletin() {
     ageGroups.reduce((sum, ag) => sum + (parseInt(formData[cellKey(disease, sub, type, ag)] || "0") || 0), 0);
 
   const handleSave = () => {
-    toast({ title: "Boletim guardado", description: `Boletim Nº ${bulletinNumber || "—"} guardado com sucesso.` });
+    toast.success(`Boletim Nº ${bulletinNumber || "—"} guardado localmente.`);
   };
 
   const handleSubmit = () => {
     if (!healthUnit || !month || !year) {
-      toast({ title: "Campos obrigatórios", description: "Preencha a unidade sanitária, mês e ano.", variant: "destructive" });
+      toast.warning("Preencha a unidade sanitária, mês e ano para submeter.");
       return;
     }
-    toast({ title: "Boletim enviado", description: "Boletim de Notificação Epidemiológica enviado ao programa municipal." });
+    toast.success("Boletim de Notificação Epidemiológica enviado à Direcção Municipal.");
+  };
+
+  const handleExport = async () => {
+    if (!healthUnit.trim()) {
+      toast.warning("Por favor, preencha o nome da Unidade Sanitária");
+      return;
+    }
+    if (!month) {
+      toast.warning("Por favor, seleccione o mês de referência");
+      return;
+    }
+
+    const toastId = toast.loading("A gerar boletim epidemiológico...");
+
+    try {
+      // Simulate small delay for UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const success = exportBulletinPdf({
+        bulletinNumber,
+        healthUnit,
+        month,
+        year,
+        informantName,
+        informantCategory,
+        observations,
+        formData,
+        diseasesPage1,
+        diseasesPage2,
+        months,
+        onProgress: (step) => toast.loading(step, { id: toastId })
+      });
+
+      if (success) {
+        toast.success("Boletim exportado com sucesso", { id: toastId });
+      } else {
+        toast.error("Erro ao gerar o PDF do boletim", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Ocorreu um erro inesperado ao exportar", { id: toastId });
+    }
   };
 
   const renderDiseaseTable = (diseases: DiseaseRow[], includeDeaths: boolean) => (
@@ -281,7 +322,7 @@ export default function EpidemiologicalBulletin() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => exportBulletinPdf({ bulletinNumber, healthUnit, month, year, informantName, informantCategory, observations, formData, diseasesPage1, diseasesPage2, months })}>
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-1" /> Exportar PDF
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}>
