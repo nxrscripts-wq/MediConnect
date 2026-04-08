@@ -118,15 +118,15 @@
   }
 
   .page-header {
-    @apply mb-6 flex items-center justify-between;
+    @apply mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4;
   }
 
   .page-title {
-    @apply text-2xl font-semibold text-foreground;
+    @apply text-xl md:text-2xl font-semibold text-foreground tracking-tight;
   }
 
   .page-subtitle {
-    @apply text-sm text-muted-foreground;
+    @apply text-xs md:text-sm text-muted-foreground;
   }
 
   .medical-timeline::before {

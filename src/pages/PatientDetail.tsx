@@ -115,35 +115,35 @@ export default function PatientDetail() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/pacientes')}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/pacientes')} className="-ml-2">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{patient.full_name}</h1>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl md:text-2xl font-bold truncate">{patient.full_name}</h1>
               <PatientStatusBadge isActive={patient.is_active} />
             </div>
-            <p className="text-sm font-mono text-muted-foreground">{patient.patient_code}</p>
+            <p className="text-[10px] md:text-sm font-mono text-muted-foreground">{patient.patient_code}</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowEditDialog(true)}>
-            <Edit className="h-4 w-4" /> Editar
+        <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-end">
+          <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none" onClick={() => setShowEditDialog(true)}>
+            <Edit className="h-4 w-4" /> <span className="text-xs">Editar</span>
           </Button>
           {patient.is_active && (
-            <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={handleDeactivate}>
-              <UserRoundX className="h-4 w-4" /> Desactivar
+            <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5 flex-1 sm:flex-none" onClick={handleDeactivate}>
+              <UserRoundX className="h-4 w-4" /> <span className="text-xs">Desactivar</span>
             </Button>
           )}
         </div>
       </div>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 w-[95vw] rounded-lg">
           <DialogHeader>
-            <DialogTitle>Editar Prontuário do Paciente</DialogTitle>
+            <DialogTitle>Editar Prontuário</DialogTitle>
           </DialogHeader>
           <PatientForm
             initialData={patient}
@@ -154,13 +154,13 @@ export default function PatientDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:shadow-sm transition-shadow">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-full"><User className="h-5 w-5 text-primary" /></div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Idade / Género</p>
-              <p className="font-bold">{calcAge(patient.date_of_birth)} anos • {patient.gender}</p>
+            <div className="bg-primary/10 p-2.5 rounded-full shrink-0"><User className="h-5 w-5 text-primary" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Idade / Género</p>
+              <p className="font-bold text-sm md:text-base truncate">{calcAge(patient.date_of_birth)} anos • {patient.gender}</p>
             </div>
           </CardContent>
         </Card>

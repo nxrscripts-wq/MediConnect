@@ -114,8 +114,8 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 {/* Section 1: Personal Data */}
                 <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-primary font-bold text-sm border-b pb-1">
-                        <User className="h-4 w-4" /> Dados Pessoais
+                    <div className="flex items-center gap-2 text-primary font-bold text-xs md:text-sm border-b pb-1">
+                        <User className="h-3.5 w-3.5 md:h-4 md:w-4" /> Dados Pessoais
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
@@ -387,11 +387,11 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                     />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                    <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="order-2 sm:order-1">
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={isLoading} className="min-w-[150px]">
+                    <Button type="submit" disabled={isLoading} className="min-w-[150px] order-1 sm:order-2">
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

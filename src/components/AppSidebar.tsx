@@ -122,7 +122,12 @@ const menuSections: MenuSection[] = [
 
 // ---------- component ----------
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: (open: boolean) => void;
+}
+
+export function AppSidebar({ isMobileOpen, setIsMobileOpen }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -153,17 +158,20 @@ export function AppSidebar() {
       {/* Mobile overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden transition-opacity",
-          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          "fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden transition-opacity duration-300",
+          isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
-        onClick={() => setCollapsed(true)}
+        onClick={() => setIsMobileOpen?.(false)}
       />
 
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 flex h-screen flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 border-r border-sidebar-border",
-          collapsed ? "w-16" : "w-60",
-          "md:relative"
+          // Mobile state
+          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          // Desktop state
+          collapsed ? "md:w-16" : "md:w-60",
+          "w-64" // default mobile width
         )}
       >
         {/* Logo */}
@@ -204,6 +212,9 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.url === "/"}
+                        onClick={() => {
+                          if (window.innerWidth < 768) setIsMobileOpen?.(false);
+                        }}
                         className={({ isActive }) =>
                           cn(
                             "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",

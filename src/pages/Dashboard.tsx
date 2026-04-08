@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const stats = [
   { label: "Pacientes Registados", value: "12.847", icon: Users, change: "+124 este mês" },
@@ -87,24 +88,31 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-3 py-2 text-xs font-medium text-muted-foreground">
+              <div className="grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 px-3 py-2 text-[10px] md:text-xs font-medium text-muted-foreground uppercase border-b mb-1">
                 <span>Paciente</span>
-                <span>ID</span>
+                <span className="hidden sm:inline">ID</span>
                 <span>Horário</span>
-                <span>Status</span>
+                <span className="text-right sm:text-left">Status</span>
               </div>
               {recentPatients.map((patient) => (
                 <div
                   key={patient.id}
-                  className="grid grid-cols-[1fr_auto_auto_auto] gap-4 rounded-md px-3 py-2.5 text-sm hover:bg-muted/50 transition-colors cursor-pointer items-center"
+                  className="grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 rounded-md px-3 py-3 text-sm hover:bg-muted/50 transition-colors cursor-pointer items-center"
                 >
-                  <span className="font-medium text-foreground">{patient.name}</span>
-                  <span className="text-xs text-muted-foreground font-mono">{patient.id}</span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-foreground truncate">{patient.name}</span>
+                    <span className="text-[10px] text-muted-foreground sm:hidden truncate">{patient.id}</span>
+                  </div>
+                  <span className="hidden sm:inline text-xs text-muted-foreground font-mono">{patient.id}</span>
+                  <span className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {patient.time}
                   </span>
-                  <span className={statusColors[patient.type]}>{patient.status}</span>
+                  <div className="text-right sm:text-left">
+                    <span className={cn(statusColors[patient.type], "text-[10px] md:text-xs whitespace-nowrap")}>
+                      {patient.status}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

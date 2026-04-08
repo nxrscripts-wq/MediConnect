@@ -184,30 +184,32 @@ export default function Patients() {
           </Card>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 bg-muted/10 rounded-lg border">
-              <span className="text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-muted/10 rounded-lg border">
+              <span className="text-xs text-muted-foreground order-2 sm:order-1 text-center sm:text-left">
                 Página <strong>{currentPage}</strong> de {totalPages}
                 <span className="mx-1">•</span>
                 <strong>{total}</strong> pacientes registados
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2 justify-between sm:justify-end">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={previousPage}
                   disabled={!hasPreviousPage}
-                  className="gap-1"
+                  className="flex-1 sm:flex-none gap-1 py-1"
                 >
-                  <ChevronLeft className="h-3 w-3" /> Anterior
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="text-xs">Anterior</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={nextPage}
                   disabled={!hasNextPage}
-                  className="gap-1"
+                  className="flex-1 sm:flex-none gap-1 py-1"
                 >
-                  Próxima <ChevronRight className="h-3 w-3" />
+                  <span className="text-xs">Próxima</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

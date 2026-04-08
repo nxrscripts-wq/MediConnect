@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const todayAppointments = [
   { id: 1, time: "08:00", patient: "Maria da Graça Neto", patientId: "PAC-20250001", type: "Consulta Geral", doctor: "Dr. António Mendes", status: "completed" as const },
@@ -118,36 +119,36 @@ export default function Appointments() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="stat-card">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+        <Card className="stat-card p-3 md:p-5">
           <CardContent className="p-0">
-            <p className="text-xs text-muted-foreground">Total Hoje</p>
-            <p className="text-xl font-bold mt-1">{stats.total}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total Hoje</p>
+            <p className="text-lg md:text-xl font-bold mt-0.5">{stats.total}</p>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card className="stat-card p-3 md:p-5">
           <CardContent className="p-0">
-            <p className="text-xs text-muted-foreground">Concluídos</p>
-            <p className="text-xl font-bold mt-1 text-success">{stats.completed}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Concluídos</p>
+            <p className="text-lg md:text-xl font-bold mt-0.5 text-success">{stats.completed}</p>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card className="stat-card p-3 md:p-5">
           <CardContent className="p-0">
-            <p className="text-xs text-muted-foreground">Em Consulta</p>
-            <p className="text-xl font-bold mt-1 text-info">{stats.inProgress}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Em Consulta</p>
+            <p className="text-lg md:text-xl font-bold mt-0.5 text-info">{stats.inProgress}</p>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card className="stat-card p-3 md:p-5">
           <CardContent className="p-0">
-            <p className="text-xs text-muted-foreground">Aguardando</p>
-            <p className="text-xl font-bold mt-1 text-warning">{stats.waiting}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Aguardando</p>
+            <p className="text-lg md:text-xl font-bold mt-0.5 text-warning">{stats.waiting}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Appointment List */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 px-4 md:px-6">
           <CardTitle className="text-base font-semibold">Fila de Hoje</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -155,18 +156,22 @@ export default function Appointments() {
             {todayAppointments.map((apt) => {
               const config = statusConfig[apt.status];
               return (
-                <div key={apt.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition-colors cursor-pointer">
-                  <div className="text-center min-w-[48px]">
-                    <p className="text-sm font-bold text-foreground">{apt.time}</p>
+                <div key={apt.id} className="flex items-center gap-3 md:gap-4 px-4 md:px-5 py-3 hover:bg-muted/30 transition-colors cursor-pointer min-w-0">
+                  <div className="text-center min-w-[42px] md:min-w-[48px]">
+                    <p className="text-xs md:text-sm font-bold text-foreground">{apt.time}</p>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{apt.patient}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {apt.type} • {apt.doctor}
+                    <p className="text-sm font-semibold truncate text-foreground/90">{apt.patient}</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">
+                      {apt.type} <span className="hidden sm:inline">• {apt.doctor}</span>
                     </p>
                   </div>
-                  <span className={config.className}>{config.label}</span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <span className={cn(config.className, "text-[10px] md:text-xs px-2 py-0.5 whitespace-nowrap")}>
+                      {config.label}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
+                  </div>
                 </div>
               );
             })}
