@@ -12,7 +12,8 @@ import {
   MapPin,
   Phone,
   User,
-  HeartPulse
+  HeartPulse,
+  Activity
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,32 +26,24 @@ import {
 } from '@/components/ui/dialog'
 import { usePatientDetail } from '@/hooks/usePatientDetail'
 import { usePatientMutations } from '@/hooks/usePatientMutations'
+import { useMedicalRecords } from '@/hooks/useMedicalRecords'
 import { PatientStatusBadge } from '@/components/patients/PatientStatusBadge'
 import { PatientForm } from '@/components/patients/PatientForm'
 import { formatDate } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 
-// Temporary mock timeline
-const timeline = [
-  {
-    date: "2025-02-18",
-    time: "09:30",
-    type: "consultation",
-    title: "Consulta — Clínica Geral",
-    doctor: "Dr. António Mendes",
-    description: "Queixa de dores abdominais persistentes. Solicitados exames laboratoriais.",
-    icon: Stethoscope,
-  },
-  {
-    date: "2025-02-10",
-    time: "14:00",
-    type: "exam",
-    title: "Exame — Hemograma Completo",
-    doctor: "Lab. Central do Moxico",
-    description: "Resultados dentro dos parâmetros normais. Hemoglobina: 12.5 g/dL.",
-    icon: TestTube,
+// Helper to map record types to icons
+const getRecordIcon = (type: string) => {
+  switch (type) {
+    case 'consulta': return Stethoscope
+    case 'exame': return TestTube
+    case 'prescricao': return Pill
+    case 'vacina': return Activity
+    case 'internamento': return HeartPulse
+    case 'cirurgia': return Activity
+    default: return Calendar
   }
-]
+}
 
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>()
@@ -58,6 +51,7 @@ export default function PatientDetail() {
   const [showEditDialog, setShowEditDialog] = useState(false)
 
   const { patient, isLoading, error } = usePatientDetail(id!)
+  const { records, isLoading: isLoadingRecords } = useMedicalRecords(patient?.id || '')
   const { updatePatient, deactivatePatient, isUpdating, isDeactivating } = usePatientMutations()
 
   function calcAge(dob: string): number {
@@ -210,30 +204,46 @@ export default function PatientDetail() {
 
             <TabsContent value="history" className="mt-4 space-y-4">
               <div className="relative pl-6 border-l-2 border-muted space-y-8 py-4">
-                {timeline.map((item, idx) => (
-                  <div key={idx} className="relative">
-                    <div className="absolute -left-[35px] top-0 bg-background p-1 border-2 border-muted rounded-full">
-                      <item.icon className="h-4 w-4 text-primary" />
-                    </div>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-bold text-sm">{item.title}</h4>
-                            <p className="text-xs text-primary font-medium">{item.doctor}</p>
-                          </div>
-                          <span className="text-[10px] font-bold text-muted-foreground">{formatDate(item.date)}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground italic">"{item.description}"</p>
-                      </CardContent>
-                    </Card>
+                {isLoadingRecords ? (
+                  <div className="space-y-4">
+                    {[1, 2].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}
                   </div>
-                ))}
-                <div className="p-4 bg-muted/20 border border-dashed rounded-lg text-center">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-                    Informação Mock — Prontuários Reais em Desenvolvimento
-                  </p>
-                </div>
+                ) : records.length > 0 ? (
+                  records.map((item, idx) => {
+                    const Icon = getRecordIcon(item.record_type)
+                    return (
+                      <div key={item.id} className="relative">
+                        <div className="absolute -left-[35px] top-0 bg-background p-1 border-2 border-muted rounded-full">
+                          <Icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-bold text-sm">{item.title}</h4>
+                                <p className="text-xs text-primary font-medium">
+                                  {item.user_profiles?.full_name || 'Profissional'}
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-bold text-muted-foreground">
+                                {formatDate(item.occurred_at)}
+                              </span>
+                            </div>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground italic">"{item.description}"</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="p-8 bg-muted/20 border border-dashed rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum registro clínico encontrado para este paciente.
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS public.appointment_queue (
   queue_number      integer NOT NULL,
   called_at         timestamptz,
   called_by         uuid REFERENCES public.user_profiles(id),
-  position          integer,
+  queue_position    integer,
   created_at        timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT uq_queue_unit_date_number UNIQUE (health_unit_id, queue_date, queue_number)
@@ -379,7 +379,7 @@ CREATE OR REPLACE FUNCTION public.get_daily_queue(
 RETURNS TABLE (
   queue_id          uuid,
   queue_number      integer,
-  position          integer,
+  queue_position    integer,
   called_at         timestamptz,
   appointment_id    uuid,
   appointment_type  appointment_type,
@@ -402,7 +402,7 @@ BEGIN
   SELECT
     aq.id              AS queue_id,
     aq.queue_number,
-    aq.position,
+    aq.queue_position,
     aq.called_at,
     a.id               AS appointment_id,
     a.appointment_type,
