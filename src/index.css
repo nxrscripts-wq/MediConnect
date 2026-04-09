@@ -153,4 +153,24 @@
     @apply inline-flex items-center rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium;
     color: hsl(var(--info));
   }
+
+  /* Responsive table wrapper */
+  .table-responsive {
+    @apply overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
+  }
+
+  /* Safe area for mobile with notch */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Page container with consistent max-width */
+  .page-container {
+    @apply w-full max-w-[1600px] mx-auto;
+  }
+
+  /* Prevent text overflow in table cells */
+  .cell-truncate {
+    @apply max-w-[200px] truncate;
+  }
 }

@@ -117,7 +117,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                     <div className="flex items-center gap-2 text-primary font-bold text-xs md:text-sm border-b pb-1">
                         <User className="h-3.5 w-3.5 md:h-4 md:w-4" /> Dados Pessoais
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="full_name"
@@ -141,7 +141,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             )}
                         />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <FormField
                             control={form.control}
                             name="date_of_birth"
@@ -184,7 +184,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             )}
                         />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="email"
@@ -224,7 +224,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                     <div className="flex items-center gap-2 text-primary font-bold text-sm border-b pb-1">
                         <MapPin className="h-4 w-4" /> Localização
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <FormField
                             control={form.control}
                             name="province"
@@ -308,7 +308,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="pt-4 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="emergency_contact_name"

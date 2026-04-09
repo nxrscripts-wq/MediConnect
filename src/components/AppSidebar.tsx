@@ -123,11 +123,11 @@ const menuSections: MenuSection[] = [
 // ---------- component ----------
 
 interface AppSidebarProps {
-  isMobileOpen?: boolean;
-  setIsMobileOpen?: (open: boolean) => void;
+  mobileSidebarOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function AppSidebar({ isMobileOpen, setIsMobileOpen }: AppSidebarProps) {
+export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -137,7 +137,11 @@ export function AppSidebar({ isMobileOpen, setIsMobileOpen }: AppSidebarProps) {
   const initials = profile ? getInitials(profile.full_name) : "?";
   const displayName = profile?.full_name ?? "A carregar...";
   const displayRole = profile ? ROLE_LABELS[profile.role] ?? "..." : "...";
-  const displayUnit = profile?.health_unit_name ?? "...";
+  const displayUnit = profile?.health_unit_name &&
+    profile.health_unit_name !== 'Unidade não definida' &&
+    profile.health_unit_name.trim() !== ''
+    ? profile.health_unit_name
+    : profile ? 'Sem unidade atribuída' : '...';
 
   const handleSignOut = async () => {
     await signOut();
@@ -155,23 +159,16 @@ export function AppSidebar({ isMobileOpen, setIsMobileOpen }: AppSidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
-      <div
-        className={cn(
-          "fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden transition-opacity duration-300",
-          isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-        onClick={() => setIsMobileOpen?.(false)}
-      />
-
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 border-r border-sidebar-border",
-          // Mobile state
-          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          // Desktop state
-          collapsed ? "md:w-16" : "md:w-60",
-          "w-64" // default mobile width
+          // Always flex — never display:none. Translate controls mobile visibility.
+          "flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300",
+          // Mobile: fixed overlay, slide in/out with translate
+          "fixed left-0 top-0 z-50 h-screen w-72",
+          mobileSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
+          // Desktop: override to static in flex flow, reset translate
+          "md:relative md:h-full md:translate-x-0 md:shadow-none",
+          collapsed ? "md:w-16" : "md:w-60"
         )}
       >
         {/* Logo */}
@@ -213,7 +210,7 @@ export function AppSidebar({ isMobileOpen, setIsMobileOpen }: AppSidebarProps) {
                         to={item.url}
                         end={item.url === "/"}
                         onClick={() => {
-                          if (window.innerWidth < 768) setIsMobileOpen?.(false);
+                          if (window.innerWidth < 768) onMobileClose?.();
                         }}
                         className={({ isActive }) =>
                           cn(
@@ -249,9 +246,11 @@ export function AppSidebar({ isMobileOpen, setIsMobileOpen }: AppSidebarProps) {
                 <p className="text-[10px] text-sidebar-muted truncate">
                   {displayRole}
                 </p>
-                <p className="text-[10px] text-sidebar-muted truncate">
-                  {displayUnit}
-                </p>
+                {displayUnit !== 'Sem unidade atribuída' ? (
+                  <p className="text-[10px] text-sidebar-muted truncate">{displayUnit}</p>
+                ) : (
+                  <p className="text-[10px] truncate italic" style={{ color: 'hsl(var(--warning))' }}>{displayUnit}</p>
+                )}
               </div>
               <button
                 onClick={handleSignOut}

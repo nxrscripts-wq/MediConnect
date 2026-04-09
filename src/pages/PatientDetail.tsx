@@ -203,7 +203,7 @@ export default function PatientDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="hover:shadow-sm transition-shadow">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="bg-primary/10 p-2.5 rounded-full shrink-0"><User className="h-5 w-5 text-primary" /></div>
@@ -252,7 +252,7 @@ export default function PatientDetail() {
             </TabsList>
 
             <TabsContent value="history" className="mt-4 space-y-4">
-              <div className="relative pl-6 border-l-2 border-muted space-y-8 py-4">
+              <div className="relative pl-5 sm:pl-6 border-l-2 border-muted space-y-6 sm:space-y-8 py-4">
                 {isLoadingRecords ? (
                   <div className="space-y-4">
                     {[1, 2].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}
