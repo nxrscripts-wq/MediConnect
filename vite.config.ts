@@ -1,7 +1,18 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
+
+// lovable-tagger only used locally — never imported in production build
+// Using dynamic require so it doesn't crash Vercel when not installed
+function loadTagger(): Plugin | false {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { componentTagger } = require("lovable-tagger");
+    return componentTagger() as Plugin;
+  } catch {
+    return false;
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react(), mode === "development" && loadTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
