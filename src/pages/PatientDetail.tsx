@@ -24,6 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { usePatientDetail } from '@/hooks/usePatientDetail'
 import { usePatientMutations } from '@/hooks/usePatientMutations'
 import { useMedicalRecords } from '@/hooks/useMedicalRecords'
@@ -49,6 +59,7 @@ export default function PatientDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
 
   const { patient, isLoading, error } = usePatientDetail(id!)
   const { records, isLoading: isLoadingRecords } = useMedicalRecords(patient?.id || '')
@@ -72,11 +83,10 @@ export default function PatientDetail() {
   }
 
   const handleDeactivate = async () => {
-    if (window.confirm('Tem a certeza que deseja desactivar este paciente?')) {
-      try {
-        await deactivatePatient(patient!.id)
-      } catch (err) { }
-    }
+    try {
+      await deactivatePatient(patient!.id)
+      setShowDeactivateDialog(false)
+    } catch (err) { }
   }
 
   if (isLoading) {
@@ -133,9 +143,48 @@ export default function PatientDetail() {
             <Edit className="h-4 w-4" /> <span className="text-xs">Editar</span>
           </Button>
           {patient.is_active && (
-            <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5 flex-1 sm:flex-none" onClick={handleDeactivate}>
-              <UserRoundX className="h-4 w-4" /> <span className="text-xs">Desactivar</span>
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5 flex-1 sm:flex-none"
+                onClick={() => setShowDeactivateDialog(true)}
+                disabled={isDeactivating}
+              >
+                <UserRoundX className="h-4 w-4" />
+                <span className="text-xs">{isDeactivating ? 'A processar...' : 'Desactivar'}</span>
+              </Button>
+
+              <AlertDialog
+                open={showDeactivateDialog}
+                onOpenChange={setShowDeactivateDialog}
+              >
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Desactivar paciente</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem a certeza que pretende desactivar{' '}
+                      <strong>{patient.full_name}</strong>?
+                      O registo será mantido no sistema mas o paciente
+                      ficará inactivo. Esta acção pode ser revertida
+                      pelo administrador.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeactivating}>
+                      Cancelar
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeactivate}
+                      disabled={isDeactivating}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeactivating ? 'A desactivar...' : 'Confirmar desactivação'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
       </div>

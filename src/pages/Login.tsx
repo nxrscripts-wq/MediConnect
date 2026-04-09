@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Activity, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -139,14 +139,8 @@ export default function Login() {
                 <p className="text-center text-xs text-muted-foreground">
                     Acesso restrito a profissionais de saúde autorizados.
                 </p>
-                <p className="text-center text-sm text-muted-foreground">
-                    Não tem conta?{" "}
-                    <Link
-                        to="/registar"
-                        className="font-medium text-primary hover:underline"
-                    >
-                        Criar conta
-                    </Link>
+                <p className="text-center text-xs text-muted-foreground">
+                    Para criar uma conta, contacte o administrador do sistema.
                 </p>
             </div>
         </div>

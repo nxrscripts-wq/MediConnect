@@ -15,8 +15,14 @@ export function usePatientMutations() {
     // Create Patient
     const createMutation = useMutation({
         mutationFn: (input: CreatePatientInput) => {
-            if (!profile?.id || !profile?.health_unit_id) {
-                throw new Error('Usuário não autenticado ou sem unidade de saúde')
+            if (!profile?.id) {
+                throw new Error('Sessão expirada. Faça login novamente.')
+            }
+            if (!profile.health_unit_id) {
+                throw new Error(
+                    'A sua conta não tem uma unidade de saúde atribuída. ' +
+                    'Contacte o administrador do sistema.'
+                )
             }
             return createPatient(input, profile.id, profile.health_unit_id)
         },

@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import Patients from "@/pages/Patients";
 import PatientDetail from "@/pages/PatientDetail";
@@ -41,8 +40,6 @@ const App = () => (
           <Routes>
             {/* Public */}
             <Route path="/login" element={<Login />} />
-            <Route path="/registar" element={<Register />} />
-
             {/* Protected — wrapped in AppLayout */}
             <Route
               element={
