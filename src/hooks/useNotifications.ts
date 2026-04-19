@@ -1,55 +1,105 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Notification } from '../types/notifications';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-    {
-        id: '1',
-        type: 'stock_alert',
-        severity: 'critical',
-        title: 'Estoque Crítico: Amoxicilina',
-        message: 'O estoque de Amoxicilina 250mg atingiu o nível crítico (45 un). Verifique a necessidade de reposição.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 mins ago
-        is_read: false,
-        link: '/medications'
-    },
-    {
-        id: '2',
-        type: 'epi_alert',
-        severity: 'warning',
-        title: 'Aumento de Casos: Malária',
-        message: 'Detetado um aumento de 15% nos casos de Malária na última semana na sua região.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        is_read: false,
-        link: '/epidemiology'
-    },
-    {
-        id: '3',
-        type: 'system',
-        severity: 'info',
-        title: 'Manutenção do Sistema',
-        message: 'Agendada manutenção para Sábado às 22h. O acesso poderá estar intermitente.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-        is_read: true
-    }
-];
+export interface Notification {
+    id: string;
+    type: 'stock_alert' | 'epi_alert' | 'system';
+    severity: 'critical' | 'warning' | 'info' | 'danger';
+    title: string;
+    message: string;
+    timestamp: string;
+    is_read: boolean;
+    link?: string;
+}
 
 export const useNotifications = () => {
-    const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+    const { profile } = useAuth();
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
-    const criticalCount = notifications.filter(n => !n.is_read && n.severity === 'critical').length;
+    const fetchNotifications = useCallback(async () => {
+        if (!profile?.health_unit_id) return;
 
-    const markAsRead = useCallback((id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    }, []);
+        // Fetch stock alerts as the primary source of real-time notifications
+        const { data, error } = await supabase
+            .from('stock_alerts')
+            .select(`
+                id,
+                alert_type,
+                severity,
+                alert_message,
+                created_at,
+                is_resolved
+            `)
+            .eq('health_unit_id', profile.health_unit_id)
+            .eq('is_resolved', false)
+            .order('created_at', { ascending: false })
+            .limit(10);
 
-    const markAllAsRead = useCallback(() => {
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    }, []);
+        if (error) {
+            console.error('Erro ao buscar notificações:', error);
+            return;
+        }
 
-    const dismiss = useCallback((id: string) => {
+        const mapped: Notification[] = data.map(item => ({
+            id: item.id,
+            type: 'stock_alert', // Derived from table name
+            severity: mapSeverity(item.severity),
+            title: mapTitle(item.alert_type),
+            message: item.alert_message,
+            timestamp: item.created_at,
+            is_read: item.is_resolved,
+            link: '/medications'
+        }));
+
+        setNotifications(mapped);
+        setLoading(false);
+    }, [profile?.health_unit_id]);
+
+    useEffect(() => {
+        fetchNotifications();
+        
+        // Subscription for new alerts
+        const channel = supabase
+            .channel('notifications_realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'stock_alerts' },
+                () => fetchNotifications()
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [fetchNotifications]);
+
+    const unreadCount = notifications.length;
+    const criticalCount = notifications.filter(n => n.severity === 'critical' || n.severity === 'danger').length;
+
+    const markAsRead = async (id: string) => {
+        const { error } = await supabase
+            .from('stock_alerts')
+            .update({ is_resolved: true })
+            .eq('id', id);
+
+        if (!error) fetchNotifications();
+    };
+
+    const markAllAsRead = async () => {
+        const { error } = await supabase
+            .from('stock_alerts')
+            .update({ is_resolved: true })
+            .eq('health_unit_id', profile?.health_unit_id)
+            .eq('is_resolved', false);
+
+        if (!error) fetchNotifications();
+    };
+
+    const dismiss = (id: string) => {
         setNotifications(prev => prev.filter(n => n.id !== id));
-    }, []);
+    };
 
     const formatRelativeTime = (isoString: string) => {
         const date = new Date(isoString);
@@ -70,6 +120,20 @@ export const useNotifications = () => {
         markAsRead,
         markAllAsRead,
         dismiss,
-        formatRelativeTime
+        formatRelativeTime,
+        loading
     };
 };
+
+function mapSeverity(s: string): any {
+    if (s === 'critico') return 'danger';
+    if (s === 'baixo') return 'warning';
+    return 'info';
+}
+
+function mapTitle(t: string): string {
+    if (t === 'ruptura_stock') return 'Ruptura de Stock';
+    if (t === 'stock_baixo') return 'Stock Baixo';
+    if (t === 'validade_proxima') return 'Validade Próxima';
+    return 'Alerta de Farmácia';
+}

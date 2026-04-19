@@ -333,22 +333,6 @@ export default function PatientDetail() {
                   <h4 className="text-sm font-bold mb-4">Contactos de Emergência</h4>
                   {patient.emergency_contact_name ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Nome</p>
-                        <p className="font-bold">{patient.emergency_contact_name}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Parentesco</p>
-                        <p className="font-bold text-primary">{patient.emergency_contact_relation}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Telefone</p>
-                        <p className="font-bold">{patient.emergency_contact_phone}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">Nenhum contacto de emergência registado.</p>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>

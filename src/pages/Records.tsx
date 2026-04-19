@@ -1,57 +1,105 @@
-import { Search, FileText } from "lucide-react";
+import { useState } from "react";
+import { Search, FileText, Calendar, User, ChevronRight, Loader2, Database } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-
-const recentRecords = [
-  { patientId: "PAC-20250001", name: "Maria Santos", lastUpdate: "2025-02-18", entries: 12 },
-  { patientId: "PAC-20250002", name: "José Fernandes", lastUpdate: "2025-02-20", entries: 8 },
-  { patientId: "PAC-20250003", name: "Ana Costa", lastUpdate: "2025-02-21", entries: 5 },
-  { patientId: "PAC-20250005", name: "Fátima Rodrigues", lastUpdate: "2025-02-19", entries: 15 },
-  { patientId: "PAC-20250006", name: "Pedro Machel", lastUpdate: "2025-02-10", entries: 3 },
-];
+import { useRecordsSearch } from "@/hooks/useMedicalRecords";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "react-router-dom";
 
 export default function Records() {
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: records, isLoading, error } = useRecordsSearch(searchTerm);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Prontuários Digitais</h1>
-        <p className="page-subtitle">Acesso rápido aos registros médicos</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Prontuários</h1>
+          <p className="page-subtitle">Histórico clínico digital e gestão de registos</p>
+        </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar prontuário por nome ou ID..." className="pl-9" />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Pesquisar por nome do paciente ou código (mín. 3 caracteres)..."
+            className="pl-9 h-11"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Button className="h-11 px-6">Pesquisar</Button>
       </div>
 
       <Card>
+        <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Database className="h-4 w-4 text-primary" />
+            Resultados da Base de Dados
+          </CardTitle>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {records?.length || 0} Registos encontrados
+          </span>
+        </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
-            {recentRecords.map((record) => (
-              <div
-                key={record.patientId}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => navigate(`/pacientes/${record.patientId}`)}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-6 py-4">
+                  <Skeleton className="h-12 w-full rounded-md" />
+                </div>
+              ))
+            ) : searchTerm.length < 3 ? (
+              <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+                <Search className="h-12 w-12 text-muted-foreground/20" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground/70">Pronto para pesquisar</p>
+                  <p className="text-xs text-muted-foreground max-w-[280px] mx-auto">
+                    Introduza as primeiras letras do nome do paciente ou o código para consultar o histórico.
+                  </p>
+                </div>
+              </div>
+            ) : records?.length === 0 ? (
+              <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+                <FileText className="h-12 w-12 text-muted-foreground/20" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground/70">Nenhum registo encontrado</p>
+                  <p className="text-xs text-muted-foreground">Não existem prontuários para "{searchTerm}".</p>
+                </div>
+              </div>
+            ) : (
+              records?.map((record) => (
+              <Link
+                key={record.id}
+                to={`/patients/${record.id}`}
+                className="flex items-center gap-4 px-6 py-4 hover:bg-muted/40 transition-colors cursor-pointer group"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                  <FileText className="h-4 w-4 text-primary" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0 group-hover:scale-110 transition-transform">
+                  {record.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{record.name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{record.patientId}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-foreground truncate">{record.name}</p>
+                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+                      {record.patientId}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Última actualização: {record.lastUpdate}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      {record.entries} Entradas
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right hidden md:block">
-                  <p className="text-xs text-muted-foreground">{record.entries} registros</p>
-                  <p className="text-xs text-muted-foreground">Atualizado: {record.lastUpdate}</p>
-                </div>
-                <Button variant="outline" size="sm" className="text-xs">
-                  Abrir
-                </Button>
-              </div>
-            ))}
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </Link>
+            )))}
           </div>
         </CardContent>
       </Card>
