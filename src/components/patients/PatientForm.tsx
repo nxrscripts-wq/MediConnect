@@ -27,9 +27,12 @@ import {
     AccordionTrigger
 } from '@/components/ui/accordion'
 import { CreatePatientInput } from '@/types/patient'
+<<<<<<< HEAD
 import { useProvinces, useMunicipalities } from '@/hooks/useLocations'
 import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
+=======
+>>>>>>> bef739d (02)
 
 const patientSchema = z.object({
     full_name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -63,7 +66,15 @@ interface PatientFormProps {
     isLoading: boolean
 }
 
+<<<<<<< HEAD
 // Geographic constants removed in favor of database fetching
+=======
+const provinces = [
+    "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango", "Cuanza Norte",
+    "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte",
+    "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"
+]
+>>>>>>> bef739d (02)
 
 export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: PatientFormProps) {
     const form = useForm<FormData>({
@@ -89,6 +100,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
         },
     })
 
+<<<<<<< HEAD
     const { data: provinceList = [] } = useProvinces()
     const selectedProvince = form.watch('province')
     const { data: municipalityList = [], isLoading: isLoadingMunicipalities } = useMunicipalities(selectedProvince)
@@ -100,6 +112,8 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
         }
     }, [selectedProvince, form, initialData?.province])
 
+=======
+>>>>>>> bef739d (02)
     const handleSubmit = (values: FormData) => {
         const formattedData = {
             ...values,
@@ -114,10 +128,17 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 {/* Section 1: Personal Data */}
                 <div className="space-y-4">
+<<<<<<< HEAD
                     <div className="flex items-center gap-2 text-primary font-bold text-xs md:text-sm border-b pb-1">
                         <User className="h-3.5 w-3.5 md:h-4 md:w-4" /> Dados Pessoais
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+=======
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm border-b pb-1">
+                        <User className="h-4 w-4" /> Dados Pessoais
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+>>>>>>> bef739d (02)
                         <FormField
                             control={form.control}
                             name="full_name"
@@ -141,7 +162,11 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             )}
                         />
                     </div>
+<<<<<<< HEAD
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+=======
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+>>>>>>> bef739d (02)
                         <FormField
                             control={form.control}
                             name="date_of_birth"
@@ -184,7 +209,11 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             )}
                         />
                     </div>
+<<<<<<< HEAD
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+=======
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+>>>>>>> bef739d (02)
                         <FormField
                             control={form.control}
                             name="email"
@@ -224,13 +253,18 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                     <div className="flex items-center gap-2 text-primary font-bold text-sm border-b pb-1">
                         <MapPin className="h-4 w-4" /> Localização
                     </div>
+<<<<<<< HEAD
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+=======
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+>>>>>>> bef739d (02)
                         <FormField
                             control={form.control}
                             name="province"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Província</FormLabel>
+<<<<<<< HEAD
                                     <Select
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
@@ -243,6 +277,14 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                                         </FormControl>
                                         <SelectContent>
                                             {provinceList.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+=======
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Província" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {provinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+>>>>>>> bef739d (02)
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -255,6 +297,7 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Município</FormLabel>
+<<<<<<< HEAD
                                     <Select
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
@@ -270,6 +313,9 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                                             {municipalityList.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+=======
+                                    <FormControl><Input placeholder="Ex: Luanda" {...field} /></FormControl>
+>>>>>>> bef739d (02)
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -308,7 +354,11 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="pt-4 space-y-4">
+<<<<<<< HEAD
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+=======
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+>>>>>>> bef739d (02)
                                 <FormField
                                     control={form.control}
                                     name="emergency_contact_name"
@@ -387,11 +437,19 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                     />
                 </div>
 
+<<<<<<< HEAD
                 <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
                     <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="order-2 sm:order-1">
                         Cancelar
                     </Button>
                     <Button type="submit" disabled={isLoading} className="min-w-[150px] order-1 sm:order-2">
+=======
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isLoading} className="min-w-[150px]">
+>>>>>>> bef739d (02)
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -5,8 +5,12 @@ import {
     CreatePatientInput,
     UpdatePatientInput,
     PatientFilters,
+<<<<<<< HEAD
     PatientListResult,
     MedicalRecord
+=======
+    PatientListResult
+>>>>>>> bef739d (02)
 } from '@/types/patient'
 
 /**
@@ -233,6 +237,7 @@ export async function getPatientStats(healthUnitId?: string) {
         }
     }
 }
+<<<<<<< HEAD
 
 /**
  * Fetch clinical timeline (medical records) for a patient
@@ -290,3 +295,5 @@ export async function getMunicipalities(province: string): Promise<string[]> {
 
     return data.map(item => item.municipality)
 }
+=======
+>>>>>>> bef739d (02)

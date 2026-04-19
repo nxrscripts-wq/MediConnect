@@ -2,11 +2,10 @@ import {
   Users,
   CalendarDays,
   FileText,
-  Activity,
   AlertTriangle,
-  TrendingUp,
   Clock,
   Stethoscope,
+<<<<<<< HEAD
   CheckCircle2,
   RefreshCw,
 } from "lucide-react";
@@ -59,6 +58,21 @@ const STATUS_CONFIG: Record<
     label: "Reagendado",
     className: "status-badge-warning",
   },
+=======
+  Loader2,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const statusColors = {
+  info: "status-badge-info",
+  warning: "status-badge-warning",
+  success: "status-badge-active",
+  muted: "inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground",
+>>>>>>> bef739d (02)
 };
 
 const ALERT_COLORS = {
@@ -110,6 +124,7 @@ function AlertSkeleton() {
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+<<<<<<< HEAD
   const {
     data: statsData,
     isLoading: statsLoading,
@@ -199,11 +214,69 @@ export default function Dashboard() {
                   </div>
                   <div className="rounded-lg bg-primary/10 p-2">
                     <stat.icon className="h-5 w-5 text-primary" />
+=======
+  const { profile } = useAuth();
+  const { stats, recentPatients, isLoading, error } = useDashboardStats(profile?.health_unit_id || "");
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h2 className="text-xl font-semibold">Erro ao carregar dados</h2>
+        <p className="text-muted-foreground">{(error as Error).message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">Visão geral da unidade: <span className="font-semibold text-foreground">{profile?.health_unit_name || "Unidade de Saúde"}</span></p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="stat-card">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 w-full">
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-3 w-1/3" />
+>>>>>>> bef739d (02)
                   </div>
                 </div>
               </CardContent>
             </Card>
+<<<<<<< HEAD
           ))}
+=======
+          ))
+        ) : (
+          stats.map((stat) => (
+            <Card key={stat.label} className="stat-card">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                    <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{stat.change}</p>
+                  </div>
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    {stat.label.includes("Pacientes") && <Users className="h-5 w-5 text-primary" />}
+                    {stat.label.includes("Consulta") && <Stethoscope className="h-5 w-5 text-primary" />}
+                    {stat.label.includes("Agendamentos") && <CalendarDays className="h-5 w-5 text-primary" />}
+                    {stat.label.includes("Fila") && <Users className="h-5 w-5 text-primary" />}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+>>>>>>> bef739d (02)
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -226,6 +299,7 @@ export default function Dashboard() {
                 <span>Horário</span>
                 <span className="text-right sm:text-left">Status</span>
               </div>
+<<<<<<< HEAD
 
               {/* Skeleton */}
               {queueLoading &&
@@ -295,6 +369,40 @@ export default function Dashboard() {
                   </p>
                 </div>
               )}
+=======
+              
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-3 py-2.5">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                  </div>
+                ))
+              ) : recentPatients.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <Clock className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum paciente na fila para hoje.</p>
+                </div>
+              ) : (
+                recentPatients.map((patient: any) => (
+                <div
+                  key={patient.id}
+                  className="grid grid-cols-[1fr_auto_auto_auto] gap-4 rounded-md px-3 py-2.5 text-sm hover:bg-muted/50 transition-colors cursor-pointer items-center"
+                >
+                  <span className="font-medium text-foreground">{patient.name}</span>
+                  <span className="text-xs text-muted-foreground font-mono">{patient.id}</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {patient.time}
+                  </span>
+                  <span className={statusColors[patient.type as keyof typeof statusColors]}>
+                    {patient.status}
+                  </span>
+                </div>
+              )))}
+>>>>>>> bef739d (02)
             </div>
           </CardContent>
         </Card>
@@ -304,10 +412,11 @@ export default function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning" />
-              Alertas Clínicos
+              Alertas do Sistema
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+<<<<<<< HEAD
             {/* Skeleton */}
             {alertsLoading &&
               Array.from({ length: 2 }).map((_, i) => (
@@ -339,6 +448,19 @@ export default function Dashboard() {
                 <p className="text-xs mt-1">
                   Todos os stocks estão dentro dos limites.
                 </p>
+=======
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-md" />
+              ))
+            ) : (
+              // This part would ideally come from a separate alerts hook
+              <div className="text-center py-6">
+                <p className="text-xs text-muted-foreground">Sincronizado com a base de dados central.</p>
+                <div className="mt-4 p-3 rounded-md border border-info/30 bg-info/5 text-[10px] text-info text-left leading-relaxed">
+                  DICA: O sistema agora monitoriza em tempo real a fila de espera da unidade {profile?.health_unit_name}.
+                </div>
+>>>>>>> bef739d (02)
               </div>
             )}
           </CardContent>

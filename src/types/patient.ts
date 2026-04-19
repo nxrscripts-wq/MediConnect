@@ -84,6 +84,7 @@ export interface PatientListResult {
     page_size: number
     total_pages: number
 }
+<<<<<<< HEAD
 
 // --- Medical Records (Timeline) ---
 
@@ -123,3 +124,5 @@ export interface AngolaLocation {
     province: string
     municipality: string
 }
+=======
+>>>>>>> bef739d (02)

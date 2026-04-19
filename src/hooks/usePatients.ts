@@ -1,5 +1,9 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
+<<<<<<< HEAD
 import { useState, useCallback, useEffect } from 'react'
+=======
+import { useState, useCallback, useMemo } from 'react'
+>>>>>>> bef739d (02)
 import { useDebounce } from '@/hooks/useDebounce'
 import { getPatients } from '@/services/patientService'
 import { PatientFilters } from '@/types/patient'
@@ -15,7 +19,11 @@ export function usePatients() {
     const debouncedSearch = useDebounce(searchTerm, 400)
 
     // Reset page when search changes
+<<<<<<< HEAD
     useEffect(() => {
+=======
+    useMemo(() => {
+>>>>>>> bef739d (02)
         setFilters(prev => ({ ...prev, page: 1 }))
     }, [debouncedSearch])
 
