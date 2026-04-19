@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getHealthUnit } from "@/services/settingsService";
 import {
   Select,
   SelectContent,
@@ -89,10 +94,35 @@ function StatTable({
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 export default function MonthlyStatistics() {
+  const { profile } = useAuth();
   const [month, setMonth] = useState("");
-  const [year, setYear] = useState("2024");
+  const [year, setYear] = useState(String(new Date().getFullYear()));
 
-  const handleSave = () => {
+  const { data: unit } = useQuery({
+    queryKey: ['health-unit', profile?.health_unit_id],
+    queryFn: () => getHealthUnit(profile!.health_unit_id!),
+    enabled: !!profile?.health_unit_id,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: reportData, isLoading: isReportLoading } = useQuery({
+    queryKey: ['monthly-report', profile?.health_unit_id, month, year],
+    queryFn: async () => {
+      if (!profile?.health_unit_id || !month) return null
+      const { data, error } = await supabase.rpc('get_monthly_report', {
+        unit_id: profile.health_unit_id,
+        month: parseInt(month),
+        year: parseInt(year),
+      })
+      if ((error as any)?.code === '42883') return null
+      if (error) throw new Error(error.message)
+      return data
+    },
+    enabled: !!profile?.health_unit_id && !!month && !!year,
+    staleTime: 1000 * 60 * 5,
+  })
+
+  const handleSave = async () => {
     toast.success("Relatório mensal guardado com sucesso!");
   };
 
@@ -165,15 +195,15 @@ export default function MonthlyStatistics() {
           </div>
           <div>
             <Label>Unidade Sanitária</Label>
-            <Input placeholder="Nome da unidade" />
+            <Input value={unit?.name ?? ''} readOnly className="bg-muted/50" />
           </div>
           <div>
             <Label>Município</Label>
-            <Input placeholder="Município" />
+            <Input value={unit?.municipality ?? ''} readOnly className="bg-muted/50" />
           </div>
           <div>
             <Label>Província</Label>
-            <Input placeholder="Província" />
+            <Input value={unit?.province ?? ''} readOnly className="bg-muted/50" />
           </div>
         </CardContent>
       </Card>

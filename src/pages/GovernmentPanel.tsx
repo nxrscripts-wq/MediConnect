@@ -1,64 +1,102 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Activity,
   Users,
   AlertTriangle,
-  TrendingUp,
   MapPin,
   Thermometer,
-} from "lucide-react";
-
-const nationalStats = [
-  { label: "Pacientes Registados", value: "2.847.392", icon: Users, change: "+12.847 este mês" },
-  { label: "Consultas Realizadas", value: "148.293", icon: Activity, change: "Últimos 30 dias" },
-  { label: "Alertas Activos", value: "7", icon: AlertTriangle, change: "3 críticos" },
-  { label: "Unidades Conectadas", value: "342", icon: MapPin, change: "de 18 províncias" },
-];
-
-const diseaseTracker = [
-  { disease: "Malária", cases: 24847, trend: "up" as const, change: "+22%", severity: "critical" as const },
-  { disease: "Febre Tifóide", cases: 4321, trend: "up" as const, change: "+15%", severity: "high" as const },
-  { disease: "HIV/SIDA", cases: 3103, trend: "stable" as const, change: "+2%", severity: "high" as const },
-  { disease: "Tuberculose", cases: 2892, trend: "down" as const, change: "-8%", severity: "medium" as const },
-  { disease: "Cólera", cases: 1542, trend: "up" as const, change: "+65%", severity: "critical" as const },
-  { disease: "Febre Amarela", cases: 289, trend: "down" as const, change: "-12%", severity: "medium" as const },
-  { disease: "Sarampo", cases: 187, trend: "up" as const, change: "+30%", severity: "high" as const },
-];
-
-const severityConfig = {
-  critical: "status-badge-danger",
-  high: "status-badge-warning",
-  medium: "status-badge-info",
-  low: "status-badge-active",
-};
-
-const trendLabels = {
-  up: "↑",
-  down: "↓",
-  stable: "→",
-};
-
-const municipalAlerts = [
-  { municipality: "Viana, Luanda", alert: "Surto de Malária — aumento de 40% em 14 dias", level: "critical" as const },
-  { municipality: "Caála, Huambo", alert: "Casos de Cólera acima do limiar epidémico", level: "critical" as const },
-  { municipality: "Lobito, Benguela", alert: "Estoque crítico de antiretrovirais no Hospital Municipal", level: "high" as const },
-  { municipality: "Lubango, Huíla", alert: "3 unidades sem conectividade há 48h", level: "medium" as const },
-];
-
-const alertLevelColors = {
-  critical: "border-destructive/30 bg-destructive/5 text-destructive",
-  high: "border-warning/30 bg-warning/5 text-warning",
-  medium: "border-info/30 bg-info/5 text-info",
-};
+  Shield,
+  RefreshCw,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 
 export default function GovernmentPanel() {
+  const { data: nationalStats, isLoading, error, refetch } = useQuery({
+    queryKey: ['national-stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_national_stats')
+      if ((error as any)?.code === '42883') return null
+      if (error) throw new Error(error.message)
+      return data
+    },
+    staleTime: 1000 * 60 * 15,
+  })
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Painel Governamental</h1>
+          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="stat-card"><CardContent className="p-0"><Skeleton className="h-20 w-full" /></CardContent></Card>
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    )
+  }
+
+  if (!nationalStats) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Painel Governamental</h1>
+          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+        </div>
+        <Card className="border-primary/20">
+          <CardContent className="flex flex-col items-center justify-center py-20 text-center">
+            <Shield className="h-16 w-16 text-primary/20 mb-4" />
+            <h3 className="text-lg font-semibold mb-1">Dados nacionais não disponíveis</h3>
+            <p className="text-sm text-muted-foreground max-w-md mb-6">
+              O painel governamental fica disponível após integração das unidades de saúde
+              e configuração das funções de agregação na base de dados.
+            </p>
+            <Button variant="outline" disabled className="gap-2 opacity-50">
+              Ver Documentação
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Painel Governamental</h1>
+          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+        </div>
+        <Card className="border-destructive/20">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertTriangle className="h-12 w-12 text-destructive/40 mb-4" />
+            <h3 className="text-lg font-semibold mb-1">Erro ao carregar dados</h3>
+            <p className="text-sm text-muted-foreground mb-4">{(error as Error).message}</p>
+            <Button onClick={() => refetch()} variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // If we reach here, nationalStats is available — render with real data
+  const stats = nationalStats as Record<string, any>
+
   return (
     <div className="space-y-6">
       <div className="page-header">
@@ -73,31 +111,20 @@ export default function GovernmentPanel() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as Províncias</SelectItem>
-            <SelectItem value="bengo">Bengo</SelectItem>
-            <SelectItem value="benguela">Benguela</SelectItem>
-            <SelectItem value="bie">Bié</SelectItem>
-            <SelectItem value="cabinda">Cabinda</SelectItem>
-            <SelectItem value="cuando-cubango">Cuando Cubango</SelectItem>
-            <SelectItem value="cuanza-norte">Cuanza Norte</SelectItem>
-            <SelectItem value="cuanza-sul">Cuanza Sul</SelectItem>
-            <SelectItem value="cunene">Cunene</SelectItem>
-            <SelectItem value="huambo">Huambo</SelectItem>
-            <SelectItem value="huila">Huíla</SelectItem>
-            <SelectItem value="luanda">Luanda</SelectItem>
-            <SelectItem value="lunda-norte">Lunda Norte</SelectItem>
-            <SelectItem value="lunda-sul">Lunda Sul</SelectItem>
-            <SelectItem value="malanje">Malanje</SelectItem>
-            <SelectItem value="moxico">Moxico</SelectItem>
-            <SelectItem value="namibe">Namibe</SelectItem>
-            <SelectItem value="uige">Uíge</SelectItem>
-            <SelectItem value="zaire">Zaire</SelectItem>
+            {['Bengo','Benguela','Bié','Cabinda','Cuando Cubango','Cuanza Norte','Cuanza Sul','Cunene','Huambo','Huíla','Luanda','Lunda Norte','Lunda Sul','Malanje','Moxico','Namibe','Uíge','Zaire'].map(p => (
+              <SelectItem key={p} value={p.toLowerCase().replace(/ /g, '-')}>{p}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* National Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {nationalStats.map((stat) => (
+        {[
+          { label: 'Pacientes Registados', value: stats.total_patients?.toLocaleString() ?? '0', icon: Users, change: `${stats.patients_this_month ?? 0} este mês` },
+          { label: 'Consultas Realizadas', value: stats.total_appointments?.toLocaleString() ?? '0', icon: Activity, change: 'Últimos 30 dias' },
+          { label: 'Alertas Activos', value: stats.active_alerts?.toString() ?? '0', icon: AlertTriangle, change: `${stats.critical_alerts ?? 0} críticos` },
+          { label: 'Unidades Conectadas', value: stats.connected_units?.toString() ?? '0', icon: MapPin, change: 'de 18 províncias' },
+        ].map((stat) => (
           <Card key={stat.label} className="stat-card">
             <CardContent className="p-0">
               <div className="flex items-start justify-between">
@@ -115,13 +142,12 @@ export default function GovernmentPanel() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Disease Tracker */}
-        <Card className="lg:col-span-2">
+      {stats.disease_tracker && (
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Thermometer className="h-4 w-4 text-primary" />
-              Monitoramento de Doenças — Últimos 30 Dias
+              Monitoramento de Doenças
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -131,32 +157,23 @@ export default function GovernmentPanel() {
                   <th className="px-4 py-2.5 font-medium text-muted-foreground">Doença</th>
                   <th className="px-4 py-2.5 font-medium text-muted-foreground">Casos</th>
                   <th className="px-4 py-2.5 font-medium text-muted-foreground">Tendência</th>
-                  <th className="px-4 py-2.5 font-medium text-muted-foreground">Severidade</th>
                 </tr>
               </thead>
               <tbody>
-                {diseaseTracker.map((d) => (
-                  <tr key={d.disease} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium">{d.disease}</td>
-                    <td className="px-4 py-2.5">{d.cases.toLocaleString()}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={d.trend === "up" ? "text-destructive" : d.trend === "down" ? "text-success" : "text-muted-foreground"}>
-                        {trendLabels[d.trend]} {d.change}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={severityConfig[d.severity]}>
-                        {d.severity === "critical" ? "Crítico" : d.severity === "high" ? "Alto" : d.severity === "medium" ? "Médio" : "Baixo"}
-                      </span>
-                    </td>
+                {(stats.disease_tracker as any[]).map((d: any, i: number) => (
+                  <tr key={i} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2.5 font-medium">{d.disease ?? d.name}</td>
+                    <td className="px-4 py-2.5">{(d.cases ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{d.trend ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </CardContent>
         </Card>
+      )}
 
-        {/* Alerts */}
+      {stats.stock_alerts && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -165,15 +182,15 @@ export default function GovernmentPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {municipalAlerts.map((alert, i) => (
-              <div key={i} className={`rounded-md border p-3 ${alertLevelColors[alert.level]}`}>
-                <p className="text-xs font-semibold mb-0.5">{alert.municipality}</p>
-                <p className="text-xs leading-relaxed opacity-90">{alert.alert}</p>
+            {(stats.stock_alerts as any[]).map((alert: any, i: number) => (
+              <div key={i} className="rounded-md border border-warning/30 bg-warning/5 p-3">
+                <p className="text-xs font-semibold mb-0.5 text-warning">{alert.medication_name ?? alert.alert_type}</p>
+                <p className="text-xs leading-relaxed text-warning/80">{alert.alert_message ?? '—'}</p>
               </div>
             ))}
           </CardContent>
         </Card>
-      </div>
+      )}
     </div>
-  );
+  )
 }

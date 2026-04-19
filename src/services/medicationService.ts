@@ -1,112 +1,78 @@
 import { supabase } from '@/lib/supabase'
-import { 
-    MedicationCatalog, 
-    MedicationStock, 
-    StockMovement, 
-    StockMovementType 
-} from '@/types/medication'
+import type {
+  MedicationStock,
+  StockStatus,
+  CreateStockMovementInput,
+} from '@/types/medications'
+import { STOCK_STATUS_CONFIG } from '@/types/medications'
 
-/**
- * Fetch the national medicine catalog
- */
-export async function getMedicationsCatalog(search?: string): Promise<MedicationCatalog[]> {
-    let query = supabase.from('medications_catalog').select('*')
-    
-    if (search) {
-        query = query.or(`name.ilike.%${search}%,active_ingredient.ilike.%${search}%`)
-    }
+export async function getMedicationStock(healthUnitId: string): Promise<MedicationStock[]> {
+  const { data, error } = await supabase
+    .from('medication_stock')
+    .select('*, medications_catalog(*)')
+    .eq('health_unit_id', healthUnitId)
+    .order('current_quantity', { ascending: true })
 
-    const { data, error } = await query.order('name')
+  if (error) {
+    if ((error as any).code === '42P01') return []
+    throw new Error(error.message)
+  }
 
-    if (error) {
-        throw new Error(`Erro ao buscar catálogo: ${error.message}`)
-    }
-
-    return data as MedicationCatalog[]
+  return data as MedicationStock[]
 }
 
-/**
- * Fetch stock for a specific health unit
- */
-export async function getStockList(healthUnitId: string): Promise<MedicationStock[]> {
-    const { data, error } = await supabase
-        .from('medication_stock')
-        .select(`
-            *,
-            medication:medications_catalog (*)
-        `)
-        .eq('health_unit_id', healthUnitId)
-
-    if (error) {
-        throw new Error(`Erro ao buscar estoque: ${error.message}`)
-    }
-
-    // Add virtual status field based on calculated logic if needed 
-    // (though database function 'get_stock_status' can be used if exposed)
-    return data.map(item => ({
-        ...item,
-        status: calculateStatus(item.current_quantity, item.minimum_quantity, item.expiry_date)
-    })) as MedicationStock[]
+export function getStockStatus(stock: MedicationStock): StockStatus {
+  const today = new Date().toISOString().split('T')[0]
+  if (stock.expiry_date && stock.expiry_date < today) return STOCK_STATUS_CONFIG.expirado
+  if (stock.current_quantity <= stock.minimum_quantity) return STOCK_STATUS_CONFIG.critico
+  if (stock.current_quantity <= stock.minimum_quantity * 1.5) return STOCK_STATUS_CONFIG.baixo
+  return STOCK_STATUS_CONFIG.normal
 }
 
-/**
- * Record a stock movement (entry, exit, etc.)
- */
 export async function addStockMovement(
-    healthUnitId: string,
-    medicationId: string,
-    type: StockMovementType,
-    quantity: number,
-    userId: string,
-    details: {
-        batch_number?: string,
-        supplier?: string,
-        notes?: string,
-        patient_id?: string,
-        prescription_id?: string
-    }
+  input: CreateStockMovementInput,
+  userId: string,
 ): Promise<void> {
-    // 1. Get current stock
-    const { data: stock, error: stockError } = await supabase
-        .from('medication_stock')
-        .select('current_quantity')
-        .eq('health_unit_id', healthUnitId)
-        .eq('medication_id', medicationId)
-        .maybeSingle()
+  // Get current stock
+  const { data: currentStock } = await supabase
+    .from('medication_stock')
+    .select('current_quantity')
+    .eq('medication_id', input.medication_id)
+    .eq('health_unit_id', input.health_unit_id)
+    .single()
 
-    if (stockError) throw stockError
+  const currentQty = currentStock?.current_quantity ?? 0
+  let quantityAfter: number
 
-    const before = stock?.current_quantity || 0
-    // Positive movement types increase stock, negative ones decrease
-    const isEntry = ['entrada', 'transferencia_entrada', 'ajuste'].includes(type) && quantity > 0
-    const change = isEntry ? Math.abs(quantity) : -Math.abs(quantity)
-    const after = Math.max(0, before + change)
+  if (['entrada', 'transferencia_entrada'].includes(input.movement_type)) {
+    quantityAfter = currentQty + input.quantity
+  } else if (input.movement_type === 'ajuste') {
+    quantityAfter = input.quantity
+  } else {
+    quantityAfter = Math.max(0, currentQty - input.quantity)
+  }
 
-    // 2. Insert movement
-    const { error: moveError } = await supabase
-        .from('stock_movements')
-        .insert({
-            health_unit_id: healthUnitId,
-            medication_id: medicationId,
-            movement_type: type,
-            quantity: Math.abs(quantity),
-            quantity_before: before,
-            quantity_after: after,
-            performed_by: userId,
-            ...details
-        })
+  // Insert the movement record
+  const { error: moveError } = await supabase.from('stock_movements').insert({
+    ...input,
+    quantity_before: currentQty,
+    quantity_after: quantityAfter,
+    performed_by: userId,
+    performed_at: new Date().toISOString(),
+  })
 
-    if (moveError) {
-        throw new Error(`Erro ao registar movimentação: ${moveError.message}`)
-    }
-}
+  if (moveError) throw new Error(moveError.message)
 
-/**
- * Helper to calculate status on frontend (mirrors database logic)
- */
-function calculateStatus(current: number, min: number, expiry?: string): 'ok' | 'baixo' | 'critico' | 'expirado' {
-    if (expiry && new Date(expiry) < new Date()) return 'expirado'
-    if (current <= min) return 'critico'
-    if (current <= min * 1.5) return 'baixo'
-    return 'ok'
+  // Update the stock directly (fallback for missing trigger)
+  const { error: stockError } = await supabase
+    .from('medication_stock')
+    .update({
+      current_quantity: quantityAfter,
+      last_updated_at: new Date().toISOString(),
+      last_updated_by: userId,
+    })
+    .eq('medication_id', input.medication_id)
+    .eq('health_unit_id', input.health_unit_id)
+
+  if (stockError) throw new Error(stockError.message)
 }

@@ -1,124 +1,83 @@
 import { supabase } from '@/lib/supabase'
-import { 
-    Appointment, 
-    AppointmentWithPatient, 
-    AppointmentStatus, 
-    AppointmentType, 
-    AppointmentPriority 
-} from '@/types/appointment'
+import type {
+  Appointment,
+  AppointmentStatus,
+  CreateAppointmentInput,
+} from '@/types/appointments'
 
-/**
- * Fetch all appointments for a specific health unit and optionally a date
- */
-export async function getAppointments(
-    healthUnitId: string, 
-    date?: string,
-    status?: AppointmentStatus
-): Promise<AppointmentWithPatient[]> {
-    let query = supabase
-        .from('appointments')
-        .select(`
-            *,
-            patient:patients (full_name, patient_code),
-            assigned_doctor:user_profiles!assigned_to (full_name)
-        `)
-        .eq('health_unit_id', healthUnitId)
-
-    if (date) {
-        query = query.eq('scheduled_date', date)
-    }
-
-    if (status) {
-        query = query.eq('status', status)
-    }
-
-    const { data, error } = await query.order('scheduled_time', { ascending: true })
-
-    if (error) {
-        throw new Error(`Erro ao buscar agendamentos: ${error.message}`)
-    }
-
-    return data as AppointmentWithPatient[]
+function isMissingTable(error: unknown): boolean {
+  return (error as any)?.code === '42P01'
 }
 
-/**
- * Fetch the daily queue for a specific health unit
- * This calls a RPC function 'get_daily_queue' defined in the database
- */
-export async function getDailyQueue(healthUnitId: string, date?: string) {
-    const { data, error } = await supabase.rpc('get_daily_queue', {
-        p_unit_id: healthUnitId,
-        p_queue_date: date || new Date().toISOString().split('T')[0]
+export async function getAppointments(filters: {
+  date?: string
+  status?: AppointmentStatus
+  health_unit_id?: string
+}): Promise<Appointment[]> {
+  let query = supabase
+    .from('appointments')
+    .select('*, patients(id, full_name, patient_code, phone), user_profiles(full_name)')
+
+  if (filters.date) query = query.eq('scheduled_date', filters.date)
+  if (filters.status) query = query.eq('status', filters.status)
+  if (filters.health_unit_id) query = query.eq('health_unit_id', filters.health_unit_id)
+
+  const { data, error } = await query.order('scheduled_time', { ascending: true })
+
+  if (error) {
+    if (isMissingTable(error)) return []
+    throw new Error(error.message)
+  }
+
+  return data as Appointment[]
+}
+
+export async function getTodayAppointments(healthUnitId: string): Promise<Appointment[]> {
+  return getAppointments({
+    date: new Date().toISOString().split('T')[0],
+    health_unit_id: healthUnitId,
+  })
+}
+
+export async function createAppointment(
+  input: CreateAppointmentInput,
+  healthUnitId: string,
+  userId: string,
+): Promise<Appointment> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .insert({
+      ...input,
+      health_unit_id: healthUnitId,
+      scheduled_by: userId,
+      priority: input.priority ?? 'normal',
+      status: 'agendado' as AppointmentStatus,
     })
+    .select('*, patients(id, full_name, patient_code, phone)')
+    .single()
 
-    if (error) {
-        throw new Error(`Erro ao buscar fila de atendimento: ${error.message}`)
-    }
-
-    return data
+  if (error) throw new Error(error.message)
+  return data as Appointment
 }
 
-/**
- * Create a new appointment
- */
-export async function createAppointment(appointment: Partial<Appointment>): Promise<Appointment> {
-    const { data, error } = await supabase
-        .from('appointments')
-        .insert(appointment)
-        .select()
-        .single()
-
-    if (error) {
-        throw new Error(`Erro ao criar agendamento: ${error.message}`)
-    }
-
-    return data as Appointment
-}
-
-/**
- * Update appointment status
- */
 export async function updateAppointmentStatus(
-    id: string, 
-    status: AppointmentStatus,
-    notes?: string
+  id: string,
+  status: AppointmentStatus,
+  extra?: { cancellation_reason?: string },
 ): Promise<void> {
-    const updateData: any = { status, updated_at: new Date().toISOString() }
-    
-    // Auto-fill actual times based on status transitions
-    if (status === 'em_atendimento') {
-        updateData.actual_start_time = new Date().toISOString()
-    } else if (status === 'concluido' || status === 'cancelado') {
-        updateData.actual_end_time = new Date().toISOString()
-    }
+  const updateData: Record<string, unknown> = {
+    status,
+    updated_at: new Date().toISOString(),
+  }
 
-    if (notes) {
-        updateData.notes = notes
-    }
+  if (status === 'em_atendimento') updateData.actual_start_time = new Date().toISOString()
+  if (status === 'concluido') updateData.actual_end_time = new Date().toISOString()
+  if (extra?.cancellation_reason) updateData.cancellation_reason = extra.cancellation_reason
 
-    const { error } = await supabase
-        .from('appointments')
-        .update(updateData)
-        .eq('id', id)
-
-    if (error) {
-        throw new Error(`Erro ao atualizar status da consulta: ${error.message}`)
-    }
+  const { error } = await supabase.from('appointments').update(updateData).eq('id', id)
+  if (error) throw new Error(error.message)
 }
 
-/**
- * Call next patient in queue
- */
-export async function callPatient(queueId: string, userId: string): Promise<void> {
-    const { error } = await supabase
-        .from('appointment_queue')
-        .update({ 
-            called_at: new Date().toISOString(),
-            called_by: userId
-        })
-        .eq('id', queueId)
-
-    if (error) {
-        throw new Error(`Erro ao chamar paciente: ${error.message}`)
-    }
+export async function cancelAppointment(id: string, reason: string): Promise<void> {
+  return updateAppointmentStatus(id, 'cancelado', { cancellation_reason: reason })
 }

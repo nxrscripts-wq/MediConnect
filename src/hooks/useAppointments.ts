@@ -1,94 +1,88 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { 
-    getAppointments, 
-    getDailyQueue, 
-    createAppointment, 
-    updateAppointmentStatus 
-} from '@/services/appointmentService'
-import { AppointmentStatus } from '@/types/appointment'
 import { toast } from 'sonner'
-import { supabase } from '@/lib/supabase'
-import { useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  getTodayAppointments,
+  createAppointment,
+  updateAppointmentStatus,
+  cancelAppointment,
+} from '@/services/appointmentService'
+import type {
+  CreateAppointmentInput,
+  AppointmentStatus,
+} from '@/types/appointments'
 
-export function useAppointments(healthUnitId: string, date: string) {
-    const queryClient = useQueryClient()
+export function useTodayAppointments() {
+  const { profile } = useAuth()
+  const healthUnitId = profile?.health_unit_id ?? ''
 
-    // 1. Get all appointments for the unit/date
-    const appointmentsQuery = useQuery({
-        queryKey: ['appointments', healthUnitId, date],
-        queryFn: () => getAppointments(healthUnitId, date),
-        enabled: !!healthUnitId
-    })
+  const query = useQuery({
+    queryKey: ['appointments-today', healthUnitId],
+    queryFn: () => getTodayAppointments(healthUnitId),
+    staleTime: 1000 * 30,
+    refetchInterval: 1000 * 60,
+    refetchIntervalInBackground: false,
+    enabled: !!healthUnitId,
+  })
 
-    // 2. Get daily queue
-    const queueQuery = useQuery({
-        queryKey: ['appointment_queue', healthUnitId, date],
-        queryFn: () => getDailyQueue(healthUnitId, date),
-        enabled: !!healthUnitId
-    })
+  return {
+    appointments: query.data ?? [],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error as Error | null,
+    refetch: query.refetch,
+  }
+}
 
-    // Realtime subscription for queue updates
-    useEffect(() => {
-        if (!healthUnitId) return
+export function useAppointmentMutations() {
+  const queryClient = useQueryClient()
+  const { profile } = useAuth()
 
-        const channel = supabase
-            .channel('queue_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'appointment_queue',
-                    filter: `health_unit_id=eq.${healthUnitId}`
-                },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: ['appointment_queue', healthUnitId] })
-                }
-            )
-            .subscribe()
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['appointments-today'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['today-queue'] })
+  }
 
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [healthUnitId, queryClient])
+  const createMutation = useMutation({
+    mutationFn: (input: CreateAppointmentInput) => {
+      if (!profile?.health_unit_id || !profile?.id)
+        throw new Error('Sem unidade de saúde atribuída.')
+      return createAppointment(input, profile.health_unit_id, profile.id)
+    },
+    onSuccess: () => {
+      toast.success('Consulta agendada com sucesso')
+      invalidate()
+    },
+    onError: (e: Error) => toast.error(`Erro ao agendar: ${e.message}`),
+  })
 
-    // Mutations
-    const createMutation = useMutation({
-        mutationFn: createAppointment,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments'] })
-            toast.success('Consulta agendada com sucesso')
-        },
-        onError: (err: Error) => {
-            toast.error(err.message)
-        }
-    })
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: AppointmentStatus }) =>
+      updateAppointmentStatus(id, status),
+    onSuccess: () => {
+      toast.success('Estado actualizado')
+      invalidate()
+    },
+    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  })
 
-    const statusMutation = useMutation({
-        mutationFn: ({ id, status, notes }: { id: string, status: AppointmentStatus, notes?: string }) => 
-            updateAppointmentStatus(id, status, notes),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments'] })
-            queryClient.invalidateQueries({ queryKey: ['appointment_queue'] })
-            toast.success('Status actualizado')
-        },
-        onError: (err: Error) => {
-            toast.error(err.message)
-        }
-    })
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      cancelAppointment(id, reason),
+    onSuccess: () => {
+      toast.success('Consulta cancelada')
+      invalidate()
+    },
+    onError: (e: Error) => toast.error(`Erro ao cancelar: ${e.message}`),
+  })
 
-    return {
-        appointments: appointmentsQuery.data ?? [],
-        queue: queueQuery.data ?? [],
-        isLoading: appointmentsQuery.isLoading || queueQuery.isLoading,
-        error: appointmentsQuery.error || queueQuery.error,
-        createAppointment: createMutation.mutate,
-        isCreating: createMutation.isPending,
-        updateStatus: statusMutation.mutate,
-        isUpdating: statusMutation.isPending,
-        refetch: () => {
-            appointmentsQuery.refetch()
-            queueQuery.refetch()
-        }
-    }
+  return {
+    createAppointment: createMutation.mutate,
+    updateStatus: updateStatusMutation.mutate,
+    cancelAppointment: cancelMutation.mutate,
+    isCreating: createMutation.isPending,
+    isUpdating: updateStatusMutation.isPending,
+    isCancelling: cancelMutation.isPending,
+  }
 }

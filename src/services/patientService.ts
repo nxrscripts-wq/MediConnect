@@ -5,12 +5,7 @@ import {
     CreatePatientInput,
     UpdatePatientInput,
     PatientFilters,
-<<<<<<< HEAD
-    PatientListResult,
-    MedicalRecord
-=======
     PatientListResult
->>>>>>> bef739d (02)
 } from '@/types/patient'
 
 /**
@@ -237,30 +232,6 @@ export async function getPatientStats(healthUnitId?: string) {
         }
     }
 }
-<<<<<<< HEAD
-
-/**
- * Fetch clinical timeline (medical records) for a patient
- */
-export async function getMedicalRecords(patientId: string): Promise<MedicalRecord[]> {
-    const { data, error } = await supabase
-        .from('medical_records')
-        .select(`
-            *,
-            user_profiles (
-                full_name,
-                role
-            )
-        `)
-        .eq('patient_id', patientId)
-        .order('occurred_at', { ascending: false })
-
-    if (error) {
-        throw new Error(error.message)
-    }
-
-    return data as MedicalRecord[]
-}
 
 /**
  * Fetch all unique provinces from the database
@@ -274,7 +245,6 @@ export async function getProvinces(): Promise<string[]> {
         throw new Error(error.message)
     }
 
-    // Get unique provinces
     const uniqueProvinces = [...new Set(data.map(item => item.province))].sort()
     return uniqueProvinces
 }
@@ -295,5 +265,4 @@ export async function getMunicipalities(province: string): Promise<string[]> {
 
     return data.map(item => item.municipality)
 }
-=======
->>>>>>> bef739d (02)
+
