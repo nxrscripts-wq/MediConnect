@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase';
 import { getPatientStats } from '@/services/patientService';
 import type { DashboardStatsData, QueueEntry, ClinicalAlert } from '@/types/dashboard';
 
@@ -9,6 +9,17 @@ import type { DashboardStatsData, QueueEntry, ClinicalAlert } from '@/types/dash
 export async function getDashboardStats(
     healthUnitId?: string
 ): Promise<DashboardStatsData> {
+    if (IS_DEMO_MODE) {
+        return {
+            totalPatients: 12450,
+            todayAppointments: 42,
+            pendingAppointments: 15,
+            recentRecords: 128,
+            thisMonthRegistered: 342,
+            lastMonthRegistered: 298,
+        };
+    }
+
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -70,6 +81,61 @@ const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export async function getTodayQueue(healthUnitId: string): Promise<QueueEntry[]> {
+    if (IS_DEMO_MODE) {
+        return [
+            {
+                id: 'q1',
+                patient_id: 'p1',
+                patient_code: 'PAC-2024-001',
+                patient_name: 'Maria Antónia Oliveira',
+                scheduled_time: '08:30',
+                appointment_type: 'Consulta Geral',
+                status: 'em_atendimento',
+                priority: 'normal',
+            },
+            {
+                id: 'q2',
+                patient_id: 'p2',
+                patient_code: 'PAC-2024-045',
+                patient_name: 'João Baptista',
+                scheduled_time: '09:00',
+                appointment_type: 'Urgência',
+                status: 'aguardando',
+                priority: 'urgente',
+            },
+            {
+                id: 'q3',
+                patient_id: 'p3',
+                patient_code: 'PAC-2023-892',
+                patient_name: 'Isabel dos Santos',
+                scheduled_time: '09:15',
+                appointment_type: 'Pré-natal',
+                status: 'aguardando',
+                priority: 'preferencial',
+            },
+            {
+                id: 'q4',
+                patient_id: 'p4',
+                patient_code: 'PAC-2024-112',
+                patient_name: 'Carlos Manuel',
+                scheduled_time: '09:45',
+                appointment_type: 'Pediatria',
+                status: 'agendado',
+                priority: 'normal',
+            },
+            {
+                id: 'q5',
+                patient_id: 'p5',
+                patient_code: 'PAC-2022-334',
+                patient_name: 'Ana Paula Rodrigues',
+                scheduled_time: '10:00',
+                appointment_type: 'Consulta Geral',
+                status: 'agendado',
+                priority: 'normal',
+            },
+        ];
+    }
+
     // Use the get_daily_queue() Postgres function (sorted by priority + time)
     const { data, error } = await supabase.rpc('get_daily_queue', {
         p_unit_id: healthUnitId,
@@ -110,6 +176,26 @@ const ALERT_LEVEL_MAP: Record<string, ClinicalAlert['level']> = {
 export async function getClinicalAlerts(
     healthUnitId?: string
 ): Promise<ClinicalAlert[]> {
+    if (IS_DEMO_MODE) {
+        return [
+            {
+                id: 'a1',
+                message: 'Estoque crítico: Paracetamol 500mg — reposição urgente necessária',
+                level: 'danger',
+            },
+            {
+                id: 'a2',
+                message: 'Medicamento vencido: Amoxicilina — retirar do stock',
+                level: 'danger',
+            },
+            {
+                id: 'a3',
+                message: 'Estoque baixo: Soro Fisiológico 500ml — atenção ao nível mínimo',
+                level: 'warning',
+            },
+        ];
+    }
+
     let query = supabase
         .from('stock_alerts')
         .select(`

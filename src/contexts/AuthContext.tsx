@@ -6,7 +6,7 @@ import React, {
     useCallback,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase, type UserProfile, type UserRole } from "@/lib/supabase";
+import { supabase, type UserProfile, type UserRole, IS_DEMO_MODE } from "@/lib/supabase";
 
 // ---------- context shape ----------
 
@@ -30,9 +30,24 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// ---------- mock data for demo mode ----------
+
+const MOCK_PROFILE: UserProfile = {
+    id: "demo-user-123",
+    email: "demo@mediconnect.gov.ao",
+    full_name: "Dr. André Demo",
+    role: "admin",
+    health_unit_id: "demo-unit-001",
+    health_unit_name: "Hospital Central de Luanda",
+    is_active: true,
+    created_at: new Date().toISOString(),
+};
+
 // ---------- helpers ----------
 
 async function fetchProfile(userId: string): Promise<UserProfile | null> {
+    if (IS_DEMO_MODE) return MOCK_PROFILE;
+
     const { data, error } = await supabase
         .from("user_profiles")
         .select("*")
@@ -62,15 +77,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Load profile when we detect a user
     const loadProfile = useCallback(async (currentUser: User | null) => {
-        if (!currentUser) {
+        if (!currentUser && !IS_DEMO_MODE) {
             setProfile(null);
             return;
         }
-        const userProfile = await fetchProfile(currentUser.id);
+        
+        if (IS_DEMO_MODE && currentUser) {
+            setProfile(MOCK_PROFILE);
+            return;
+        }
+
+        const userProfile = await fetchProfile(currentUser?.id ?? "");
         setProfile(userProfile);
     }, []);
 
     useEffect(() => {
+        if (IS_DEMO_MODE) {
+            // In Demo Mode, check local storage for a fake session
+            const isDemoLoggedIn = localStorage.getItem("mediconnect_demo_logged_in") === "true";
+            if (isDemoLoggedIn) {
+                const fakeUser = { id: "demo-user-123", email: "demo@mediconnect.gov.ao" } as User;
+                const fakeSession = { user: fakeUser, access_token: "demo-token" } as Session;
+                setUser(fakeUser);
+                setSession(fakeSession);
+                setProfile(MOCK_PROFILE);
+            }
+            setLoading(false);
+            return;
+        }
+
         // 1. Recover existing session
         supabase.auth
             .getSession()
@@ -103,6 +138,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: string,
             password: string
         ): Promise<{ error: string | null }> => {
+            if (IS_DEMO_MODE) {
+                // Any login works in Demo Mode
+                localStorage.setItem("mediconnect_demo_logged_in", "true");
+                const fakeUser = { id: "demo-user-123", email } as User;
+                const fakeSession = { user: fakeUser, access_token: "demo-token" } as Session;
+                setUser(fakeUser);
+                setSession(fakeSession);
+                setProfile(MOCK_PROFILE);
+                return { error: null };
+            }
+
             const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -133,6 +179,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             fullName: string,
             role: UserRole
         ): Promise<{ error: string | null }> => {
+            if (IS_DEMO_MODE) {
+                return { error: "O registo está desabilitado em Modo Demo. Por favor, use o Login Directo." };
+            }
+
             const { error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -165,7 +215,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signOut = useCallback(async () => {
         setProfile(null);
-        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        if (IS_DEMO_MODE) {
+            localStorage.removeItem("mediconnect_demo_logged_in");
+        } else {
+            await supabase.auth.signOut();
+        }
     }, []);
 
     return (

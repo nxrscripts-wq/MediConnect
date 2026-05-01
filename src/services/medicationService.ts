@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import type {
   MedicationStock,
   StockStatus,
@@ -7,6 +7,44 @@ import type {
 import { STOCK_STATUS_CONFIG } from '@/types/medications'
 
 export async function getMedicationStock(healthUnitId: string): Promise<MedicationStock[]> {
+  if (IS_DEMO_MODE) {
+    return [
+      {
+        id: "m1",
+        medication_id: "med1",
+        health_unit_id: healthUnitId,
+        current_quantity: 450,
+        minimum_quantity: 100,
+        expiry_date: "2025-12-31",
+        last_updated_at: new Date().toISOString(),
+        last_updated_by: "demo",
+        medications_catalog: { name: "Paracetamol 500mg", presentation: "Comprimidos" } as any
+      },
+      {
+        id: "m2",
+        medication_id: "med2",
+        health_unit_id: healthUnitId,
+        current_quantity: 80,
+        minimum_quantity: 100,
+        expiry_date: "2024-06-30",
+        last_updated_at: new Date().toISOString(),
+        last_updated_by: "demo",
+        medications_catalog: { name: "Amoxicilina 500mg", presentation: "Cápsulas" } as any
+      },
+      {
+        id: "m3",
+        medication_id: "med3",
+        health_unit_id: healthUnitId,
+        current_quantity: 10,
+        minimum_quantity: 50,
+        expiry_date: "2023-01-01",
+        last_updated_at: new Date().toISOString(),
+        last_updated_by: "demo",
+        medications_catalog: { name: "Ibuprofeno 400mg", presentation: "Comprimidos" } as any
+      }
+    ];
+  }
+
   const { data, error } = await supabase
     .from('medication_stock')
     .select('*, medications_catalog(*)')
@@ -33,6 +71,8 @@ export async function addStockMovement(
   input: CreateStockMovementInput,
   userId: string,
 ): Promise<void> {
+  if (IS_DEMO_MODE) return;
+
   // Get current stock
   const { data: currentStock } = await supabase
     .from('medication_stock')

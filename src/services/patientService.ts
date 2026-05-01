@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import {
     Patient,
     PatientWithUnit,
@@ -8,10 +8,57 @@ import {
     PatientListResult
 } from '@/types/patient'
 
+// ─────────────────────────────────────────────────────────────────────
+// Mock Data for Demo Mode
+// ─────────────────────────────────────────────────────────────────────
+
+const MOCK_PATIENTS: PatientWithUnit[] = [
+    {
+        id: "p1",
+        patient_code: "PAC-2024-001",
+        full_name: "Maria Antónia Oliveira",
+        national_id: "001234567LA045",
+        date_of_birth: "1985-05-12",
+        gender: "feminino",
+        phone: "923 000 111",
+        province: "Luanda",
+        municipality: "Belas",
+        address: "Centralidade do Kilamba, Bloco G",
+        is_active: true,
+        created_at: "2024-01-10T10:00:00Z",
+        health_units: { id: "u1", name: "Hospital Central de Luanda", municipality: "Luanda", province: "Luanda" }
+    },
+    {
+        id: "p2",
+        patient_code: "PAC-2024-045",
+        full_name: "João Baptista",
+        national_id: "009876543BE092",
+        date_of_birth: "1972-11-23",
+        gender: "masculino",
+        phone: "912 333 444",
+        province: "Benguela",
+        municipality: "Lobito",
+        address: "Bairro da Luz",
+        is_active: true,
+        created_at: "2024-02-15T14:30:00Z",
+        health_units: { id: "u2", name: "Hospital Geral de Benguela", municipality: "Benguela", province: "Benguela" }
+    }
+];
+
 /**
  * List patients with advanced filtering and server-side pagination
  */
 export async function getPatients(filters: PatientFilters): Promise<PatientListResult> {
+    if (IS_DEMO_MODE) {
+        return {
+            data: MOCK_PATIENTS,
+            total: MOCK_PATIENTS.length,
+            page: 1,
+            page_size: 20,
+            total_pages: 1
+        };
+    }
+
     const page = filters.page ?? 1
     const page_size = filters.page_size ?? 20
     const from = (page - 1) * page_size
@@ -75,6 +122,11 @@ export async function getPatients(filters: PatientFilters): Promise<PatientListR
  * Get patient by UUID
  */
 export async function getPatientById(id: string): Promise<PatientWithUnit> {
+    if (IS_DEMO_MODE) {
+        const patient = MOCK_PATIENTS.find(p => p.id === id) ?? MOCK_PATIENTS[0];
+        return patient;
+    }
+
     const { data, error } = await supabase
         .from('patients')
         .select(`
@@ -97,6 +149,11 @@ export async function getPatientById(id: string): Promise<PatientWithUnit> {
  * Get patient by PAC code
  */
 export async function getPatientByCode(code: string): Promise<PatientWithUnit> {
+    if (IS_DEMO_MODE) {
+        const patient = MOCK_PATIENTS.find(p => p.patient_code === code) ?? MOCK_PATIENTS[0];
+        return patient;
+    }
+
     const { data, error } = await supabase
         .from('patients')
         .select(`
@@ -123,6 +180,20 @@ export async function createPatient(
     userId: string,
     healthUnitId: string
 ): Promise<Patient> {
+    if (IS_DEMO_MODE) {
+        return {
+            ...input,
+            id: `new-p-${Date.now()}`,
+            patient_code: `PAC-2024-${Math.floor(Math.random() * 999)}`,
+            allergies: input.allergies ?? [],
+            chronic_conditions: input.chronic_conditions ?? [],
+            registered_by: userId,
+            registered_at_unit_id: healthUnitId,
+            is_active: true,
+            created_at: new Date().toISOString()
+        } as Patient;
+    }
+
     const insertData = {
         ...input,
         allergies: input.allergies ?? [],
@@ -149,6 +220,10 @@ export async function createPatient(
  * Update patient record
  */
 export async function updatePatient(input: UpdatePatientInput): Promise<Patient> {
+    if (IS_DEMO_MODE) {
+        return { ...input, updated_at: new Date().toISOString() } as Patient;
+    }
+
     const { id, ...updateData } = input
 
     const { data, error } = await supabase
@@ -169,6 +244,8 @@ export async function updatePatient(input: UpdatePatientInput): Promise<Patient>
  * Deactivate patient record (soft delete)
  */
 export async function deactivatePatient(id: string): Promise<void> {
+    if (IS_DEMO_MODE) return;
+
     const { error } = await supabase
         .from('patients')
         .update({ is_active: false, updated_at: new Date().toISOString() })
@@ -183,6 +260,10 @@ export async function deactivatePatient(id: string): Promise<void> {
  * Fast search for autocomplete inputs
  */
 export async function searchPatients(term: string, limit = 10): Promise<Patient[]> {
+    if (IS_DEMO_MODE) {
+        return MOCK_PATIENTS.filter(p => p.full_name.toLowerCase().includes(term.toLowerCase()) || p.patient_code.includes(term)).slice(0, limit) as unknown as Patient[];
+    }
+
     const { data, error } = await supabase
         .from('patients')
         .select('id, patient_code, full_name, date_of_birth, phone, gender')
@@ -202,6 +283,18 @@ export async function searchPatients(term: string, limit = 10): Promise<Patient[
  * Fetch dashboard stats for a unit (or globally)
  */
 export async function getPatientStats(healthUnitId?: string) {
+    if (IS_DEMO_MODE) {
+        return {
+            total_active: 12450,
+            registered_this_month: 342,
+            registered_last_month: 298,
+            by_gender: {
+                masculino: 5800,
+                feminino: 6650
+            }
+        };
+    }
+
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
@@ -237,6 +330,10 @@ export async function getPatientStats(healthUnitId?: string) {
  * Fetch all unique provinces from the database
  */
 export async function getProvinces(): Promise<string[]> {
+    if (IS_DEMO_MODE) {
+        return ["Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
+    }
+
     const { data, error } = await supabase
         .from('angola_locations')
         .select('province')
@@ -253,6 +350,11 @@ export async function getProvinces(): Promise<string[]> {
  * Fetch municipalities for a given province
  */
 export async function getMunicipalities(province: string): Promise<string[]> {
+    if (IS_DEMO_MODE) {
+        if (province === "Luanda") return ["Belas", "Cacuaco", "Cazenga", "Ícolo e Bengo", "Luanda", "Quiçama", "Kilamba Kiaxi", "Talatona", "Viana"];
+        return ["Município A", "Município B"];
+    }
+
     const { data, error } = await supabase
         .from('angola_locations')
         .select('municipality')

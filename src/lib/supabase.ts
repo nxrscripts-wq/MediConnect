@@ -5,16 +5,19 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as
   | string
   | undefined;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    "[MediConnect] Variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórias. " +
-    "Crie um ficheiro .env.local na raiz do projecto com essas variáveis."
+// Detect if we should run in Demo Mode (no keys provided)
+export const IS_DEMO_MODE = !supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("SEU_PROJECTO") || supabaseAnonKey === "eyJ...";
+
+if (IS_DEMO_MODE) {
+  console.warn(
+    "[MediConnect] Executando em MODO DEMO. Algumas funcionalidades podem usar dados simulados. " +
+    "Para usar o backend real, configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ficheiro .env.local"
   );
 }
 
 export const supabase = createClient(
-  supabaseUrl ?? "https://placeholder.supabase.co",
-  supabaseAnonKey ?? "placeholder-key"
+  supabaseUrl && !supabaseUrl.includes("SEU_PROJECTO") ? supabaseUrl : "https://placeholder.supabase.co",
+  supabaseAnonKey && supabaseAnonKey !== "eyJ..." ? supabaseAnonKey : "placeholder-key"
 );
 
 // ---------- tipos ----------

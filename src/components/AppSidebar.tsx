@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { IS_DEMO_MODE } from "@/lib/supabase";
 import type { UserRole } from "@/lib/supabase";
 
 // ---------- helpers ----------
@@ -176,9 +177,16 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
           {!collapsed && (
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-sidebar-primary" />
-              <span className="text-sm font-bold tracking-tight text-sidebar-primary-foreground">
-                MediConect
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold tracking-tight text-sidebar-primary-foreground">
+                  MediConnect
+                </span>
+                {IS_DEMO_MODE && (
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-warning leading-none">
+                    Modo Demo
+                  </span>
+                )}
+              </div>
             </div>
           )}
           {collapsed && <Activity className="mx-auto h-5 w-5 text-sidebar-primary" />}

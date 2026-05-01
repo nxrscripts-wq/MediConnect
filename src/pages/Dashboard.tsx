@@ -7,6 +7,8 @@ import {
   Stethoscope,
   CheckCircle2,
   RefreshCw,
+  TrendingUp,
+  Activity,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -130,25 +132,25 @@ export default function Dashboard() {
     ? [
       {
         label: "Pacientes Registados",
-        value: statsData.totalPatients.toLocaleString("pt-PT"),
+        value: (statsData.totalPatients ?? 0).toLocaleString("pt-PT"),
         icon: Users,
-        change: `+${statsData.thisMonthRegistered} este mês`,
+        change: `+${statsData.thisMonthRegistered ?? 0} este mês`,
       },
       {
         label: "Consultas Hoje",
-        value: String(statsData.todayAppointments),
+        value: String(statsData.todayAppointments ?? 0),
         icon: Stethoscope,
         change: "Total agendado para hoje",
       },
       {
         label: "Agendamentos Pendentes",
-        value: String(statsData.pendingAppointments),
+        value: String(statsData.pendingAppointments ?? 0),
         icon: CalendarDays,
         change: "Aguardam atendimento",
       },
       {
         label: "Prontuários Actualizados",
-        value: String(statsData.recentRecords),
+        value: String(statsData.recentRecords ?? 0),
         icon: FileText,
         change: "Últimos 7 dias",
       },
