@@ -108,41 +108,89 @@ export default function EpidemiologicalBulletin() {
     toast.success("Boletim de Notificação Epidemiológica enviado à Direcção Municipal.");
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'pdf' | 'csv' = 'pdf') => {
     if (!healthUnit.trim()) {
-      toast.warning("Por favor, preencha o nome da Unidade Sanitária");
+      toast.warning("Preencha o nome da unidade sanitária");
       return;
     }
     if (!month) {
-      toast.warning("Por favor, seleccione o mês de referência");
+      toast.warning("Seleccione o mês de referência");
       return;
     }
 
-    const toastId = toast.loading("A gerar boletim epidemiológico...");
+    const toastId = toast.loading(`A gerar boletim (${format.toUpperCase()})...`);
 
     try {
       // Simulate small delay for UX
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const success = exportBulletinPdf({
-        bulletinNumber,
-        healthUnit,
-        month,
-        year,
-        informantName,
-        informantCategory,
-        observations,
-        formData,
-        diseasesPage1,
-        diseasesPage2,
-        months,
-        onProgress: (step) => toast.loading(step, { id: toastId })
-      });
+      if (format === 'pdf') {
+        const success = exportBulletinPdf({
+          bulletinNumber,
+          healthUnit,
+          month,
+          year,
+          informantName,
+          informantCategory,
+          observations,
+          formData,
+          diseasesPage1,
+          diseasesPage2,
+          months,
+          onProgress: (step) => toast.loading(step, { id: toastId })
+        });
 
-      if (success) {
-        toast.success("Boletim exportado com sucesso", { id: toastId });
+        if (success) {
+          toast.success("Boletim PDF exportado com sucesso", { id: toastId });
+        } else {
+          toast.error("Erro ao gerar o PDF do boletim", { id: toastId });
+        }
       } else {
-        toast.error("Erro ao gerar o PDF do boletim", { id: toastId });
+        // Export CSV
+        const { exportToCSV } = await import("@/lib/exportUtils");
+        
+        const csvData: any[] = [];
+        const allDiseases = [...diseasesPage1, ...diseasesPage2];
+        
+        allDiseases.forEach(d => {
+          if (d.hasConfirmation) {
+            ['com', 'sem'].forEach(sub => {
+              const row: any = { 
+                doenca: d.name, 
+                tipo: sub === 'com' ? 'Com Confirmação' : 'Sem Confirmação' 
+              };
+              ageGroups.forEach(ag => {
+                row[`casos_${ag}`] = formData[cellKey(d.name, sub as any, "cases", ag)] || "0";
+              });
+              row.total_casos = getRowTotal(d.name, sub as any, "cases");
+              csvData.push(row);
+            });
+          } else {
+            const row: any = { doenca: d.name, tipo: 'Geral' };
+            ageGroups.forEach(ag => {
+              row[`casos_${ag}`] = formData[cellKey(d.name, "main", "cases", ag)] || "0";
+            });
+            row.total_casos = getRowTotal(d.name, "main", "cases");
+            csvData.push(row);
+          }
+        });
+
+        const success = exportToCSV({
+          filename: `boletim_epidemiologico_${month}_${year}`,
+          columns: [
+            { header: "Doenca", key: "doenca" },
+            { header: "Tipo", key: "tipo" },
+            ...ageGroups.map(ag => ({ header: `Casos ${ag}`, key: `casos_${ag}` })),
+            { header: "Total", key: "total_casos" }
+          ],
+          data: csvData
+        });
+
+        if (success) {
+          toast.success("Boletim CSV exportado com sucesso", { id: toastId });
+        } else {
+          toast.error("Erro ao gerar o CSV", { id: toastId });
+        }
       }
     } catch (error) {
       console.error("Export error:", error);
@@ -322,9 +370,16 @@ export default function EpidemiologicalBulletin() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-1" /> Exportar PDF
-          </Button>
+          <Select onValueChange={(val) => handleExport(val as any)}>
+            <SelectTrigger className="w-[140px] h-9">
+              <Download className="h-4 w-4 mr-1" />
+              <SelectValue placeholder="Exportar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pdf">PDF para Impressão</SelectItem>
+              <SelectItem value="csv">CSV para Excel</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-1" /> Imprimir
           </Button>

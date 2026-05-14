@@ -52,7 +52,11 @@ export default function Medications() {
 
     try {
       let success = false;
-      const filename = `stock_medicamentos_${new Date().toISOString().split('T')[0].replace(/-/g, '')}`;
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const filename = `stock_medicamentos_${dd}${mm}${yyyy}`;
 
       const exportData = sortedStock.map(s => ({
         name: s.medications_catalog.name,
@@ -81,6 +85,15 @@ export default function Medications() {
           healthUnitName: profile?.health_unit_name || "Unidade de Saúde",
           includeTimestamp: true,
           includeHealthUnit: true,
+          didDrawCell: (dataArg) => {
+            // Highlight status_label column if it says 'Crítico' or 'Expirado'
+            if (dataArg.section === 'body' && (dataArg.column.dataKey === 4 || dataArg.column.dataKey === 'status_label')) {
+              const val = dataArg.cell.raw;
+              if (val === 'Crítico' || val === 'Expirado') {
+                dataArg.doc.setTextColor(220, 38, 38); // red-600
+              }
+            }
+          }
         });
       } else {
         success = exportToCSV({
@@ -150,7 +163,7 @@ export default function Medications() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="page-title">Medicamentos</h1>
           <p className="page-subtitle">Controle de estoque real — {profile?.health_unit_name}</p>

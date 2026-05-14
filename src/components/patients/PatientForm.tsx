@@ -387,11 +387,11 @@ export function PatientForm({ initialData, onSubmit, onCancel, isLoading }: Pati
                     />
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                    <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="order-2 sm:order-1">
+                <div className="flex flex-wrap gap-3 justify-end pt-4 border-t">
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={isLoading} className="min-w-[150px] order-1 sm:order-2">
+                    <Button type="submit" disabled={isLoading} className="min-w-[150px]">
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

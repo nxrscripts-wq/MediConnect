@@ -4,8 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Patients from "@/pages/Patients";
@@ -20,6 +20,7 @@ import MonthlyStatistics from "@/pages/MonthlyStatistics";
 import EpidemiologicalBulletin from "@/pages/EpidemiologicalBulletin";
 import MaternityNotebook from "@/pages/MaternityNotebook";
 import NotFound from "@/pages/NotFound";
+import ResetPassword from "@/pages/ResetPassword";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,9 +39,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public */}
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
-            {/* Protected — wrapped in AppLayout */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Authenticated Routes */}
             <Route
               element={
                 <ProtectedRoute>
@@ -48,7 +51,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              {/* Todos autenticados */}
+              {/* Everyone authenticated */}
               <Route path="/" element={<Dashboard />} />
               <Route path="/pacientes" element={<Patients />} />
               <Route path="/pacientes/:id" element={<PatientDetail />} />
@@ -56,7 +59,7 @@ const App = () => (
               <Route path="/agendamento" element={<Appointments />} />
               <Route path="/caderno-maternidade" element={<MaternityNotebook />} />
 
-              {/* Farmacêutico, Gestor, Admin */}
+              {/* Roles: Farmacêutico, Gestor, Admin */}
               <Route
                 path="/medicamentos"
                 element={
@@ -66,7 +69,7 @@ const App = () => (
                 }
               />
 
-              {/* Gestor, Admin */}
+              {/* Roles: Gestor, Admin */}
               <Route
                 path="/relatorios"
                 element={
@@ -92,7 +95,7 @@ const App = () => (
                 }
               />
 
-              {/* Admin only */}
+              {/* Roles: Admin only */}
               <Route
                 path="/configuracoes"
                 element={
@@ -102,7 +105,7 @@ const App = () => (
                 }
               />
 
-              {/* Médico, Gestor, Admin */}
+              {/* Roles: Médico, Gestor, Admin */}
               <Route
                 path="/boletim-epidemiologico"
                 element={
@@ -113,6 +116,7 @@ const App = () => (
               />
             </Route>
 
+            {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

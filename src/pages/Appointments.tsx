@@ -146,7 +146,7 @@ export default function Appointments() {
 
   return (
     <div className="space-y-6">
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-3">
         <div>
           <h1 className="page-title">Agendamento</h1>
           <p className="page-subtitle">Gestão de consultas e atendimentos em tempo real</p>

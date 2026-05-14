@@ -1,238 +1,214 @@
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase';
-import { getPatientStats } from '@/services/patientService';
-import type { DashboardStatsData, QueueEntry, ClinicalAlert } from '@/types/dashboard';
+import { supabase } from '@/lib/supabase'
+import {
+  DashboardStats,
+  QueuePatient,
+  DashboardAlert
+} from '@/types/dashboard'
 
-// ─────────────────────────────────────────────────────────────────────
-// 1. Aggregated stats (patients + appointments + medical records)
-// ─────────────────────────────────────────────────────────────────────
+/**
+ * 1. Aggregated stats for top cards
+ */
+export async function getDashboardStats(healthUnitId?: string): Promise<DashboardStats> {
+  const today = new Date()
+  const todayDate = today.toISOString().split('T')[0]
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString()
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59).toISOString()
 
-export async function getDashboardStats(
-    healthUnitId?: string
-): Promise<DashboardStatsData> {
-    if (IS_DEMO_MODE) {
-        return {
-            totalPatients: 12450,
-            todayAppointments: 42,
-            pendingAppointments: 15,
-            recentRecords: 128,
-            thisMonthRegistered: 342,
-            lastMonthRegistered: 298,
-        };
+  // Helper for safe counts
+  const safeCount = async (query: any) => {
+    try {
+      const { count, error } = await query
+      if (error) {
+        if (error.code === '42P01') return 0 // Table doesn't exist
+        console.warn('Dashboard query error:', error)
+        return 0
+      }
+      return count ?? 0
+    } catch (e) {
+      return 0
     }
+  }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Define queries
+  const q1 = supabase.from('patients').select('*', { count: 'exact', head: true }).eq('is_active', true)
+  const q2 = supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', monthStart)
+  const q3 = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('scheduled_date', todayDate)
+  const q4 = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('scheduled_date', todayDate).eq('status', 'em_atendimento')
+  const q5 = supabase.from('appointments').select('*', { count: 'exact', head: true }).in('status', ['agendado', 'aguardando', 'confirmado']).gte('scheduled_date', todayDate)
+  const q6 = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('priority', 'urgente').in('status', ['agendado', 'aguardando', 'confirmado']).gte('scheduled_date', todayDate)
+  const q7 = supabase.from('medical_records').select('*', { count: 'exact', head: true }).gte('updated_at', sevenDaysAgo)
+  const q8 = supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', lastMonthStart).lte('created_at', lastMonthEnd)
 
-    // 1a. Patient stats (total active + this month)
-    const patientStats = await getPatientStats(healthUnitId);
+  // Apply health unit filters if provided
+  const applyUnit = (q: any, table: string) => {
+    if (!healthUnitId) return q
+    if (table === 'patients') return q.eq('registered_at_unit_id', healthUnitId)
+    return q.eq('health_unit_id', healthUnitId)
+  }
 
-    // 1b. Consultas hoje (agendamentos para hoje) — count only
-    let todayQuery = supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .eq('scheduled_date', today);
-    if (healthUnitId) todayQuery = todayQuery.eq('health_unit_id', healthUnitId);
+  const [
+    patients_total,
+    patients_this_month,
+    consultations_today,
+    consultations_in_progress,
+    appointments_pending,
+    appointments_urgent,
+    records_updated_7days,
+    patients_last_month
+  ] = await Promise.all([
+    safeCount(applyUnit(q1, 'patients')),
+    safeCount(applyUnit(q2, 'patients')),
+    safeCount(applyUnit(q3, 'appointments')),
+    safeCount(applyUnit(q4, 'appointments')),
+    safeCount(applyUnit(q5, 'appointments')),
+    safeCount(applyUnit(q6, 'appointments')),
+    safeCount(applyUnit(q7, 'medical_records')),
+    safeCount(applyUnit(q8, 'patients'))
+  ])
 
-    // 1c. Agendamentos pendentes (não concluídos, não cancelados, >= hoje)
-    let pendingQuery = supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['agendado', 'confirmado', 'aguardando'])
-        .gte('scheduled_date', today);
-    if (healthUnitId) pendingQuery = pendingQuery.eq('health_unit_id', healthUnitId);
-
-    // 1d. Prontuários dos últimos 7 dias
-    let recordsQuery = supabase
-        .from('medical_records')
-        .select('*', { count: 'exact', head: true })
-        .gte('occurred_at', sevenDaysAgo);
-    if (healthUnitId) recordsQuery = recordsQuery.eq('health_unit_id', healthUnitId);
-
-    const [todayResult, pendingResult, recordsResult] = await Promise.all([
-        todayQuery,
-        pendingQuery,
-        recordsQuery,
-    ]);
-
-    return {
-        totalPatients: patientStats.total_active,
-        todayAppointments: todayResult.count ?? 0,
-        pendingAppointments: pendingResult.count ?? 0,
-        recentRecords: recordsResult.count ?? 0,
-        thisMonthRegistered: patientStats.registered_this_month,
-        lastMonthRegistered: patientStats.registered_last_month,
-    };
+  return {
+    patients_total,
+    patients_this_month,
+    patients_last_month,
+    consultations_today,
+    consultations_in_progress,
+    appointments_pending,
+    appointments_urgent,
+    records_updated_7days
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// 2. Today's appointment queue (top 5, priority-sorted)
-// ─────────────────────────────────────────────────────────────────────
+/**
+ * 2. Today's appointment queue
+ */
+export async function getTodayQueue(healthUnitId: string): Promise<QueuePatient[]> {
+  const today = new Date().toISOString().split('T')[0]
 
-const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
-    consulta_geral: 'Consulta Geral',
-    retorno: 'Retorno',
-    urgencia: 'Urgência',
-    pre_natal: 'Pré-natal',
-    pediatria: 'Pediatria',
-    vacinacao: 'Vacinação',
-    exames: 'Exames',
-    cirurgia: 'Cirurgia',
-    outro: 'Outro',
-};
-
-export async function getTodayQueue(healthUnitId: string): Promise<QueueEntry[]> {
-    if (IS_DEMO_MODE) {
-        return [
-            {
-                id: 'q1',
-                patient_id: 'p1',
-                patient_code: 'PAC-2024-001',
-                patient_name: 'Maria Antónia Oliveira',
-                scheduled_time: '08:30',
-                appointment_type: 'Consulta Geral',
-                status: 'em_atendimento',
-                priority: 'normal',
-            },
-            {
-                id: 'q2',
-                patient_id: 'p2',
-                patient_code: 'PAC-2024-045',
-                patient_name: 'João Baptista',
-                scheduled_time: '09:00',
-                appointment_type: 'Urgência',
-                status: 'aguardando',
-                priority: 'urgente',
-            },
-            {
-                id: 'q3',
-                patient_id: 'p3',
-                patient_code: 'PAC-2023-892',
-                patient_name: 'Isabel dos Santos',
-                scheduled_time: '09:15',
-                appointment_type: 'Pré-natal',
-                status: 'aguardando',
-                priority: 'preferencial',
-            },
-            {
-                id: 'q4',
-                patient_id: 'p4',
-                patient_code: 'PAC-2024-112',
-                patient_name: 'Carlos Manuel',
-                scheduled_time: '09:45',
-                appointment_type: 'Pediatria',
-                status: 'agendado',
-                priority: 'normal',
-            },
-            {
-                id: 'q5',
-                patient_id: 'p5',
-                patient_code: 'PAC-2022-334',
-                patient_name: 'Ana Paula Rodrigues',
-                scheduled_time: '10:00',
-                appointment_type: 'Consulta Geral',
-                status: 'agendado',
-                priority: 'normal',
-            },
-        ];
-    }
-
-    // Use the get_daily_queue() Postgres function (sorted by priority + time)
-    const { data, error } = await supabase.rpc('get_daily_queue', {
-        p_unit_id: healthUnitId,
-    });
-
-    if (error) {
-        // Gracefully fall back to empty array — not a fatal error for dashboard
-        console.warn('[Dashboard] getTodayQueue:', error.message);
-        return [];
-    }
-
-    // Map DB row → QueueEntry and cap at 5
-    return (data ?? []).slice(0, 5).map((row: Record<string, unknown>) => ({
-        id: row.queue_id as string,
-        patient_id: row.patient_id as string,
-        patient_code: row.patient_code as string,
-        patient_name: row.patient_name as string,
-        scheduled_time: (row.scheduled_time as string)?.slice(0, 5) ?? '--:--',
-        appointment_type:
-            APPOINTMENT_TYPE_LABELS[row.appointment_type as string] ??
-            (row.appointment_type as string),
-        status: row.appointment_status as QueueEntry['status'],
-        priority: row.priority as QueueEntry['priority'],
-    }));
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// 3. Clinical / stock alerts (unresolved, max 5)
-// ─────────────────────────────────────────────────────────────────────
-
-const ALERT_LEVEL_MAP: Record<string, ClinicalAlert['level']> = {
-    stock_critico: 'danger',
-    vencido: 'danger',
-    stock_baixo: 'warning',
-    a_vencer: 'warning',
-};
-
-export async function getClinicalAlerts(
-    healthUnitId?: string
-): Promise<ClinicalAlert[]> {
-    if (IS_DEMO_MODE) {
-        return [
-            {
-                id: 'a1',
-                message: 'Estoque crítico: Paracetamol 500mg — reposição urgente necessária',
-                level: 'danger',
-            },
-            {
-                id: 'a2',
-                message: 'Medicamento vencido: Amoxicilina — retirar do stock',
-                level: 'danger',
-            },
-            {
-                id: 'a3',
-                message: 'Estoque baixo: Soro Fisiológico 500ml — atenção ao nível mínimo',
-                level: 'warning',
-            },
-        ];
-    }
-
-    let query = supabase
-        .from('stock_alerts')
-        .select(`
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(`
       id,
-      alert_type,
-      health_unit_id,
-      medications_catalog ( name )
+      scheduled_time,
+      appointment_type,
+      status,
+      priority,
+      patients (
+        id,
+        full_name,
+        patient_code
+      ),
+      user_profiles (
+        full_name
+      )
     `)
-        .eq('is_resolved', false)
-        .order('created_at', { ascending: false })
-        .limit(5);
+    .eq('health_unit_id', healthUnitId)
+    .eq('scheduled_date', today)
+    .in('status', ['agendado', 'confirmado', 'aguardando', 'em_atendimento', 'concluido'])
+    .order('scheduled_time', { ascending: true })
+    .limit(10)
 
-    if (healthUnitId) query = query.eq('health_unit_id', healthUnitId);
+  if (error) {
+    if (error.code === '42P01') return []
+    throw new Error(error.message)
+  }
 
-    const { data, error } = await query;
-
-    if (error) {
-        console.warn('[Dashboard] getClinicalAlerts:', error.message);
-        return [];
+  const mapAppointmentType = (type: string): string => {
+    const types: Record<string, string> = {
+      'consulta_geral': 'Consulta Geral',
+      'retorno': 'Retorno',
+      'urgencia': 'Urgência',
+      'pre_natal': 'Pré-natal',
+      'vacinacao': 'Vacinação',
+      'exames': 'Exames'
     }
+    return types[type] || type
+  }
 
-    const ALERT_MESSAGES: Record<string, (name: string) => string> = {
-        stock_critico: (name) => `Estoque crítico: ${name} — reposição urgente necessária`,
-        stock_baixo: (name) => `Estoque baixo: ${name} — atenção ao nível mínimo`,
-        a_vencer: (name) => `Medicamento a vencer em 30 dias: ${name}`,
-        vencido: (name) => `Medicamento vencido: ${name} — retirar do stock`,
-    };
+  const mapStatus = (status: string): QueuePatient['status'] => {
+    if (status === 'concluido') return 'completed'
+    if (status === 'em_atendimento') return 'in-progress'
+    if (status === 'aguardando') return 'waiting'
+    if (status === 'cancelado') return 'cancelled'
+    return 'scheduled'
+  }
 
-    return (data ?? []).map((row) => {
-        const medName =
-            (row.medications_catalog as { name?: string } | null)?.name ?? 'Medicamento';
-        const makeMsg =
-            ALERT_MESSAGES[row.alert_type] ?? ((n: string) => `Alerta de stock: ${n}`);
-        return {
-            id: row.id,
-            message: makeMsg(medName),
-            level: ALERT_LEVEL_MAP[row.alert_type] ?? 'info',
-        };
-    });
+  return (data || []).map((row: any, index: number) => ({
+    id: row.id,
+    appointment_id: row.id,
+    patient_name: row.patients?.full_name ?? 'Paciente desconhecido',
+    patient_code: row.patients?.patient_code ?? '—',
+    scheduled_time: row.scheduled_time?.substring(0, 5) ?? '—',
+    appointment_type: mapAppointmentType(row.appointment_type),
+    status: mapStatus(row.status),
+    assigned_to_name: row.user_profiles?.full_name ?? null,
+    queue_number: index + 1
+  }))
+}
+
+/**
+ * 3. System alerts
+ */
+export async function getDashboardAlerts(healthUnitId: string): Promise<DashboardAlert[]> {
+  const getStockAlerts = async () => {
+    const { data, error } = await supabase
+      .from('stock_alerts')
+      .select(`
+        id,
+        alert_type,
+        created_at,
+        medications_catalog (
+          name
+        )
+      `)
+      .eq('health_unit_id', healthUnitId)
+      .eq('is_resolved', false)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    
+    if (error) return []
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      message: `${row.alert_type === 'stock_critico' ? 'Estoque crítico' : 'Estoque baixo'}: ${row.medications_catalog?.name ?? 'Medicamento'}`,
+      level: row.alert_type === 'stock_critico' ? 'danger' : 'warning' as const,
+      source: 'stock' as const,
+      action_url: '/medicamentos',
+      created_at: row.created_at
+    }))
+  }
+
+  const getEpidemiologyAlerts = async () => {
+    const { data, error } = await supabase
+      .from('disease_alerts')
+      .select('id, disease_name, alert_level, message, created_at, province')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(3)
+    
+    if (error) return []
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      message: row.message,
+      level: row.alert_level === 'critico' ? 'danger' : row.alert_level === 'alto' ? 'warning' : 'info' as const,
+      source: 'epidemiology' as const,
+      action_url: '/boletim-epidemiologico',
+      created_at: row.created_at
+    }))
+  }
+
+  const [stockResults, epiResults] = await Promise.allSettled([
+    getStockAlerts(),
+    getEpidemiologyAlerts()
+  ])
+
+  const stockAlerts = stockResults.status === 'fulfilled' ? stockResults.value : []
+  const epiAlerts = epiResults.status === 'fulfilled' ? epiResults.value : []
+
+  // Combine and sort
+  const combined = [...stockAlerts, ...epiAlerts]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5)
+
+  return combined
 }

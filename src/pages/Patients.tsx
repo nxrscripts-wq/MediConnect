@@ -83,7 +83,7 @@ export default function Patients() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <PatientSearchBar
           value={searchTerm}
           onChange={setSearch}
@@ -184,19 +184,18 @@ export default function Patients() {
           </Card>
 
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-muted/10 rounded-lg border">
-              <span className="text-xs text-muted-foreground order-2 sm:order-1 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-t">
+              <p className="text-xs text-muted-foreground order-2 sm:order-1">
                 Página <strong>{currentPage}</strong> de {totalPages}
-                <span className="mx-1">•</span>
-                <strong>{total}</strong> pacientes registados
-              </span>
-              <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2 justify-between sm:justify-end">
+                <span className="hidden sm:inline"> — {total} pacientes</span>
+              </p>
+              <div className="flex gap-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={previousPage}
                   disabled={!hasPreviousPage}
-                  className="flex-1 sm:flex-none gap-1 py-1"
+                  className="gap-1 h-8 px-2"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   <span className="text-xs">Anterior</span>
@@ -206,7 +205,7 @@ export default function Patients() {
                   size="sm"
                   onClick={nextPage}
                   disabled={!hasNextPage}
-                  className="flex-1 sm:flex-none gap-1 py-1"
+                  className="gap-1 h-8 px-2"
                 >
                   <span className="text-xs">Próxima</span>
                   <ChevronRight className="h-4 w-4" />

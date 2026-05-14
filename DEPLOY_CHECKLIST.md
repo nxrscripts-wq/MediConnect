@@ -43,8 +43,8 @@
 
 ## Branding e Identidade
 - [x] Favicon SVG presente em `/public/favicon.svg`
-- [x] Gerar `favicon.ico` manualmente a partir do SVG (ex: realfavicongenerator.net) e substituir em `/public/`
-- [x] Gerar `apple-touch-icon.png` (180x180) e colocar em `/public/`
+- [ ] Gerar `favicon.ico` manualmente a partir do SVG (ex: realfavicongenerator.net) e substituir em `/public/`
+- [ ] Gerar `apple-touch-icon.png` (180x180) e colocar em `/public/`
 - [x] Validar título "MediConnect — Sistema Nacional de Saúde" no browser
 
 ---

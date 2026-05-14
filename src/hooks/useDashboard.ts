@@ -1,65 +1,77 @@
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/contexts/AuthContext'
 import {
-    getDashboardStats,
-    getTodayQueue,
-    getClinicalAlerts,
-} from '@/services/dashboardService';
+  getDashboardStats,
+  getTodayQueue,
+  getDashboardAlerts
+} from '@/services/dashboardService'
 
-// ─────────────────────────────────────────────────────────────────────
-// Hook: useDashboardStats
-// Fetches the 4 stat cards data (patients, appointments, records)
-// ─────────────────────────────────────────────────────────────────────
-
+// ── Stats hook ──────────────────────────────────────────
 export function useDashboardStats() {
-    const { profile } = useAuth();
-    const unitId = profile?.health_unit_id ?? undefined;
+  const { profile } = useAuth()
+  const healthUnitId = profile?.health_unit_id ?? undefined
 
-    return useQuery({
-        queryKey: ['dashboard', 'stats', unitId ?? 'global'],
-        queryFn: () => getDashboardStats(unitId),
-        enabled: profile !== undefined, // only run once auth is resolved
-        staleTime: 2 * 60 * 1000,       // 2 min
-        refetchInterval: 5 * 60 * 1000, // auto-refresh every 5 min
-        retry: 2,
-    });
+  const query = useQuery({
+    queryKey: ['dashboard-stats', healthUnitId],
+    queryFn: () => getDashboardStats(healthUnitId),
+    staleTime: 1000 * 60 * 3,        // 3 minutos
+    refetchInterval: 1000 * 60 * 5,  // auto-refresh cada 5 minutos
+    refetchIntervalInBackground: false,
+    enabled: true,                    // carregar mesmo sem health_unit_id
+  })
+
+  return {
+    stats: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error as Error | null,
+    lastUpdated: query.dataUpdatedAt
+      ? new Date(query.dataUpdatedAt)
+      : null,
+    refetch: query.refetch,
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Hook: useTodayQueue
-// Fetches the appointment queue for today (top 5)
-// Only runs when the user has a health_unit_id assigned
-// ─────────────────────────────────────────────────────────────────────
-
+// ── Queue hook ──────────────────────────────────────────
 export function useTodayQueue() {
-    const { profile } = useAuth();
-    const unitId = profile?.health_unit_id ?? null;
+  const { profile } = useAuth()
+  const healthUnitId = profile?.health_unit_id
 
-    return useQuery({
-        queryKey: ['dashboard', 'queue', unitId],
-        queryFn: () => getTodayQueue(unitId!),
-        enabled: !!unitId,              // skip if no unit assigned
-        staleTime: 1 * 60 * 1000,      // 1 min
-        refetchInterval: 2 * 60 * 1000, // auto-refresh every 2 min
-        retry: 1,
-    });
+  const query = useQuery({
+    queryKey: ['today-queue', healthUnitId],
+    queryFn: () => getTodayQueue(healthUnitId!),
+    staleTime: 1000 * 30,            // 30 segundos
+    refetchInterval: 1000 * 60,      // auto-refresh cada minuto
+    refetchIntervalInBackground: false,
+    enabled: !!healthUnitId,
+  })
+
+  return {
+    queue: query.data ?? [],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error as Error | null,
+    refetch: query.refetch,
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Hook: useClinicalAlerts
-// Fetches unresolved stock alerts (max 5)
-// ─────────────────────────────────────────────────────────────────────
+// ── Alerts hook ─────────────────────────────────────────
+export function useDashboardAlerts() {
+  const { profile } = useAuth()
+  const healthUnitId = profile?.health_unit_id
 
-export function useClinicalAlerts() {
-    const { profile } = useAuth();
-    const unitId = profile?.health_unit_id ?? undefined;
+  const query = useQuery({
+    queryKey: ['dashboard-alerts', healthUnitId],
+    queryFn: () => getDashboardAlerts(healthUnitId ?? ''),
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 5,
+    refetchIntervalInBackground: false,
+    enabled: true,
+  })
 
-    return useQuery({
-        queryKey: ['dashboard', 'alerts', unitId ?? 'global'],
-        queryFn: () => getClinicalAlerts(unitId),
-        enabled: profile !== undefined,
-        staleTime: 5 * 60 * 1000,       // 5 min
-        refetchInterval: 10 * 60 * 1000, // auto-refresh every 10 min
-        retry: 2,
-    });
+  return {
+    alerts: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: query.refetch,
+  }
 }

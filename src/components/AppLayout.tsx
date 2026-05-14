@@ -4,7 +4,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Search, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import NotificationCenter from "@/components/NotificationCenter";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { cn } from "@/lib/utils";
 
 export default function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -20,7 +21,7 @@ export default function AppLayout() {
         />
       )}
 
-      {/* Sidebar — static in desktop flow, fixed overlay in mobile */}
+      {/* Sidebar */}
       <AppSidebar
         mobileSidebarOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}

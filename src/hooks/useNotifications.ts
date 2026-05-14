@@ -1,139 +1,140 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-
-export interface Notification {
-    id: string;
-    type: 'stock_alert' | 'epi_alert' | 'system';
-    severity: 'critical' | 'warning' | 'info' | 'danger';
-    title: string;
-    message: string;
-    timestamp: string;
-    is_read: boolean;
-    link?: string;
-}
+import { Notification, NotificationType, NotificationSeverity } from '@/types/notifications';
 
 export const useNotifications = () => {
-    const { profile } = useAuth();
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
+  const healthUnitId = profile?.health_unit_id;
 
-    const fetchNotifications = useCallback(async () => {
-        if (!profile?.health_unit_id) return;
+  // Fetch notifications from Supabase
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ['notifications', healthUnitId],
+    queryFn: async () => {
+      const query = supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-        // Fetch stock alerts as the primary source of real-time notifications
-        const { data, error } = await supabase
-            .from('stock_alerts')
-            .select(`
-                id,
-                alert_type,
-                severity,
-                alert_message,
-                created_at,
-                is_resolved
-            `)
-            .eq('health_unit_id', profile.health_unit_id)
-            .eq('is_resolved', false)
-            .order('created_at', { ascending: false })
-            .limit(10);
+      // Filter by health unit if available
+      if (healthUnitId) {
+        query.or(`health_unit_id.eq.${healthUnitId},health_unit_id.is.null`);
+      }
 
-        if (error) {
-            console.error('Erro ao buscar notificações:', error);
-            return;
-        }
+      const { data, error } = await query;
 
-        const mapped: Notification[] = data.map(item => ({
-            id: item.id,
-            type: 'stock_alert', // Derived from table name
-            severity: mapSeverity(item.severity),
-            title: mapTitle(item.alert_type),
-            message: item.alert_message,
-            timestamp: item.created_at,
-            is_read: item.is_resolved,
-            link: '/medications'
-        }));
+      if (error) {
+        // Table doesn't exist yet — return empty
+        if ((error as any).code === '42P01') return [];
+        console.warn('Error fetching notifications:', error.message);
+        return [];
+      }
 
-        setNotifications(mapped);
-        setLoading(false);
-    }, [profile?.health_unit_id]);
+      return (data ?? []) as Notification[];
+    },
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 3,
+    enabled: true,
+  });
 
-    useEffect(() => {
-        fetchNotifications();
-        
-        // Subscription for new alerts
-        const channel = supabase
-            .channel('notifications_realtime')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'stock_alerts' },
-                () => fetchNotifications()
-            )
-            .subscribe();
+  // Mark single notification as read
+  const markAsReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id);
+      if (error && (error as any).code !== '42P01') {
+        console.warn('Error marking notification as read:', error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [fetchNotifications]);
+  // Mark all as read
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      if (!healthUnitId) return;
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .or(`health_unit_id.eq.${healthUnitId},health_unit_id.is.null`)
+        .eq('is_read', false);
+      if (error && (error as any).code !== '42P01') {
+        console.warn('Error marking all as read:', error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
 
-    const unreadCount = notifications.length;
-    const criticalCount = notifications.filter(n => n.severity === 'critical' || n.severity === 'danger').length;
+  // Dismiss (delete) a notification
+  const dismissMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+      if (error && (error as any).code !== '42P01') {
+        console.warn('Error dismissing notification:', error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
 
-    const markAsRead = async (id: string) => {
-        const { error } = await supabase
-            .from('stock_alerts')
-            .update({ is_resolved: true })
-            .eq('id', id);
+  const markAsRead = useCallback((id: string) => {
+    markAsReadMutation.mutate(id);
+  }, [markAsReadMutation]);
 
-        if (!error) fetchNotifications();
-    };
+  const markAllAsRead = useCallback(() => {
+    markAllAsReadMutation.mutate();
+  }, [markAllAsReadMutation]);
 
-    const markAllAsRead = async () => {
-        const { error } = await supabase
-            .from('stock_alerts')
-            .update({ is_resolved: true })
-            .eq('health_unit_id', profile?.health_unit_id)
-            .eq('is_resolved', false);
+  const dismiss = useCallback((id: string) => {
+    dismissMutation.mutate(id);
+  }, [dismissMutation]);
 
-        if (!error) fetchNotifications();
-    };
+  const unread_count = useMemo(() =>
+    notifications.filter(n => !n.is_read).length,
+  [notifications]);
 
-    const dismiss = (id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    };
+  const critical_count = useMemo(() =>
+    notifications.filter(n => n.severity === 'critical' && !n.is_read).length,
+  [notifications]);
 
-    const formatRelativeTime = (isoString: string) => {
-        const date = new Date(isoString);
-        const now = new Date();
-        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  // Formatação de tempo relativo
+  const formatRelativeTime = (isoString: string) => {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-        if (diffInSeconds < 60) return 'Agora mesmo';
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min atrás`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h atrás`;
+    if (diffInMinutes < 1) return 'Agora mesmo';
+    if (diffInMinutes < 60) return `Há ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+    if (diffInHours < 24) return `Há ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+    if (diffInDays < 7) return `Há ${diffInDays} dia${diffInDays > 1 ? 's' : ''}`;
 
-        return date.toLocaleDateString('pt-AO');
-    };
+    return date.toLocaleDateString('pt-AO');
+  };
 
-    return {
-        notifications,
-        unreadCount,
-        criticalCount,
-        markAsRead,
-        markAllAsRead,
-        dismiss,
-        formatRelativeTime,
-        loading
-    };
+  return {
+    notifications,
+    unread_count,
+    critical_count,
+    isLoading,
+    markAsRead,
+    markAllAsRead,
+    dismiss,
+    formatRelativeTime
+  };
 };
-
-function mapSeverity(s: string): any {
-    if (s === 'critico') return 'danger';
-    if (s === 'baixo') return 'warning';
-    return 'info';
-}
-
-function mapTitle(t: string): string {
-    if (t === 'ruptura_stock') return 'Ruptura de Stock';
-    if (t === 'stock_baixo') return 'Stock Baixo';
-    if (t === 'validade_proxima') return 'Validade Próxima';
-    return 'Alerta de Farmácia';
-}

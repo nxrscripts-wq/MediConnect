@@ -147,12 +147,12 @@ export default function PatientDetail() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5 flex-1 sm:flex-none"
+                className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5"
                 onClick={() => setShowDeactivateDialog(true)}
                 disabled={isDeactivating}
               >
                 <UserRoundX className="h-4 w-4" />
-                <span className="text-xs">{isDeactivating ? 'A processar...' : 'Desactivar'}</span>
+                {isDeactivating ? 'A processar...' : 'Desactivar'}
               </Button>
 
               <AlertDialog
@@ -245,11 +245,13 @@ export default function PatientDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Tabs defaultValue="history">
-            <TabsList className="bg-muted/50 p-1">
-              <TabsTrigger value="history" className="gap-2"><Calendar className="h-4 w-4" /> Prontuário</TabsTrigger>
-              <TabsTrigger value="clinical">Clínico</TabsTrigger>
-              <TabsTrigger value="contacts">Contactos</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto">
+              <TabsList className="bg-muted/50 p-1 w-full sm:w-auto">
+                <TabsTrigger value="history" className="gap-2"><Calendar className="h-4 w-4" /> Prontuário</TabsTrigger>
+                <TabsTrigger value="clinical">Clínico</TabsTrigger>
+                <TabsTrigger value="contacts">Contactos</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="history" className="mt-4 space-y-4">
               <div className="relative pl-5 sm:pl-6 border-l-2 border-muted space-y-6 sm:space-y-8 py-4">

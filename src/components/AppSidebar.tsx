@@ -19,7 +19,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { IS_DEMO_MODE } from "@/lib/supabase";
 import type { UserRole } from "@/lib/supabase";
 
 // ---------- helpers ----------
@@ -162,14 +161,16 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
     <>
       <aside
         className={cn(
-          // Always flex — never display:none. Translate controls mobile visibility.
-          "flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300",
-          // Mobile: fixed overlay, slide in/out with translate
-          "fixed left-0 top-0 z-50 h-screen w-72",
-          mobileSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
-          // Desktop: override to static in flex flow, reset translate
-          "md:relative md:h-full md:translate-x-0 md:shadow-none",
-          collapsed ? "md:w-16" : "md:w-60"
+          // Base: sempre visível em desktop como elemento do flow normal
+          "flex h-screen flex-col bg-sidebar text-sidebar-foreground",
+          "border-r border-sidebar-border transition-all duration-300",
+          // Desktop: elemento estático no flow, largura dinâmica
+          "hidden md:flex",
+          collapsed ? "md:w-16" : "md:w-60",
+          // Mobile: overlay fixo controlado por prop
+          mobileSidebarOpen
+            ? "flex fixed left-0 top-0 z-50 w-72 shadow-2xl"
+            : "fixed left-0 top-0 z-50 w-72 -translate-x-full"
         )}
       >
         {/* Logo */}
@@ -181,11 +182,7 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
                 <span className="text-sm font-bold tracking-tight text-sidebar-primary-foreground">
                   MediConnect
                 </span>
-                {IS_DEMO_MODE && (
-                  <span className="text-[8px] font-bold uppercase tracking-widest text-warning leading-none">
-                    Modo Demo
-                  </span>
-                )}
+
               </div>
             </div>
           )}
@@ -244,21 +241,23 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
         <div className="border-t border-sidebar-border p-3">
           {!collapsed ? (
             <div className="flex items-center gap-2 rounded-md bg-sidebar-accent px-3 py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold shrink-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold shrink-0">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate text-sidebar-accent-foreground">
+                <p className="text-xs font-medium truncate text-sidebar-accent-foreground leading-none mb-1">
                   {displayName}
                 </p>
-                <p className="text-[10px] text-sidebar-muted truncate">
-                  {displayRole}
-                </p>
-                {displayUnit !== 'Sem unidade atribuída' ? (
-                  <p className="text-[10px] text-sidebar-muted truncate">{displayUnit}</p>
-                ) : (
-                  <p className="text-[10px] truncate italic" style={{ color: 'hsl(var(--warning))' }}>{displayUnit}</p>
-                )}
+                <div className="flex flex-col leading-tight">
+                  <span className="text-[10px] text-sidebar-muted truncate">
+                    {displayRole}
+                  </span>
+                  {profile?.health_unit_name && (
+                    <span className="text-[10px] text-sidebar-muted truncate italic">
+                      {profile.health_unit_name}
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={handleSignOut}
@@ -273,7 +272,7 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
               <button
                 onClick={handleSignOut}
                 title="Terminar sessão"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
               >
                 {initials}
               </button>
