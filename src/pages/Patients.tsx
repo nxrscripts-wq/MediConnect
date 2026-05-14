@@ -21,6 +21,7 @@ import { PatientSearchBar } from '@/components/patients/PatientSearchBar'
 import { PatientStatusBadge } from '@/components/patients/PatientStatusBadge'
 import { PatientForm } from '@/components/patients/PatientForm'
 import { formatDate } from '@/lib/exportUtils'
+import { ExportButton } from '@/components/ExportButton'
 import { cn } from '@/lib/utils'
 
 export default function Patients() {
@@ -64,10 +65,43 @@ export default function Patients() {
             {isLoading ? 'A carregar base de dados...' : `${total} pacientes registados no sistema`}
           </p>
         </div>
-        <Button onClick={() => setShowNewDialog(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Paciente
-        </Button>
+        <div className="flex gap-2">
+          <ExportButton
+            formats={['pdf', 'excel', 'csv', 'print']}
+            label="Exportar"
+            variant="outline"
+            disabled={patients.length === 0}
+            options={{
+              filename: `pacientes_${new Date().toISOString().split('T')[0]}`,
+              orientation: 'landscape',
+              metadata: {
+                title: 'Registo Nacional de Pacientes',
+                subtitle: `Total: ${total} pacientes activos`,
+                module: 'patients',
+                period: `Exportado em ${new Date().toLocaleDateString('pt-AO')}`,
+                filters: searchTerm ? `Pesquisa: "${searchTerm}"` : undefined,
+                totalRecords: total,
+              },
+              columns: [
+                { key: 'patient_code', header: 'Código',      width: 25, excelWidth: 15 },
+                { key: 'full_name',    header: 'Nome',         width: 55, excelWidth: 30 },
+                { key: 'gender',       header: 'Género',       width: 20, align: 'center' },
+                { key: 'date_of_birth',header: 'Nascimento',   width: 25,
+                  format: (v) => formatDate(String(v)) },
+                { key: 'province',     header: 'Província',    width: 25 },
+                { key: 'municipality', header: 'Município',    width: 25 },
+                { key: 'phone',        header: 'Telefone',     width: 25 },
+                { key: 'is_active',    header: 'Estado',       width: 15, align: 'center',
+                  format: (v) => v ? 'Activo' : 'Inactivo' },
+              ],
+              data: patients.map(p => ({ ...p })),
+            }}
+          />
+          <Button onClick={() => setShowNewDialog(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Paciente
+          </Button>
+        </div>
       </div>
 
       <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>

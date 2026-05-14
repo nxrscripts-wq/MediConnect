@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { exportToPDF, exportToCSV } from "@/lib/exportUtils";
+import { ExportButton } from "@/components/ExportButton";
+import { useExport } from "@/hooks/useExport";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ function getPeriodDates(period: string) {
 
 export default function Reports() {
   const { profile } = useAuth();
+  const { exportWithFeedback, isExporting } = useExport();
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
 
@@ -507,44 +509,40 @@ export default function Reports() {
           return;
         }
 
-        if (format === 'pdf') {
-          success = exportToPDF({
-            filename: `consumo_medicamentos_${selectedPeriod}`,
-            title: report.title,
-            subtitle,
-            columns: [
-              { header: "Medicamento", key: "med" },
-              { header: "Unidade", key: "unit" },
-              { header: "Quantidade Dispensada", key: "qty", align: 'center' },
-            ],
-            data,
-            healthUnitName: unitName
-          });
-        } else {
-          success = exportToCSV({
-            filename: `consumo_medicamentos_${selectedPeriod}`,
-            columns: [
-              { header: "Medicamento", key: "med" },
-              { header: "Unidade", key: "unit" },
-              { header: "Quantidade Dispensada", key: "qty" },
-            ],
-            data
-          });
+          if (format === 'pdf') {
+            success = await exportWithFeedback({
+              format: 'pdf',
+              filename: `consumo_medicamentos_${selectedPeriod}`,
+              metadata: { title: report.title, subtitle, module: 'reports' },
+              columns: [
+                { header: "Medicamento", key: "med" },
+                { header: "Unidade", key: "unit" },
+                { header: "Quantidade Dispensada", key: "qty", align: 'center' },
+              ],
+              data,
+            }).then(() => true).catch(() => false);
+          } else {
+            success = await exportWithFeedback({
+              format: 'csv',
+              filename: `consumo_medicamentos_${selectedPeriod}`,
+              metadata: { title: report.title, module: 'reports' },
+              columns: [
+                { header: "Medicamento", key: "med" },
+                { header: "Unidade", key: "unit" },
+                { header: "Quantidade Dispensada", key: "qty" },
+              ],
+              data
+            }).then(() => true).catch(() => false);
+          }
         }
+  
+      } catch (err) {
+        console.error(err);
+        toast.error('Ocorreu um erro inesperado', { id: toastId });
+      } finally {
+        setCardLoading(reportId, false);
       }
-
-      if (success) {
-        toast.success('Relatório exportado com sucesso', { id: toastId });
-      } else {
-        toast.error('Erro ao gerar relatório', { id: toastId });
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Ocorreu um erro inesperado', { id: toastId });
-    } finally {
-      setCardLoading(reportId, false);
-    }
-  };
+    };
 
   return (
     <div className="space-y-6">
@@ -598,10 +596,10 @@ export default function Reports() {
                   size="sm"
                   className={cn(
                     "flex-1 text-xs gap-1.5 h-9 font-medium border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-primary",
-                    loadingStates[report.id] && "opacity-70 pointer-events-none"
+                    (loadingStates[report.id] || isExporting) && "opacity-70 pointer-events-none"
                   )}
                   onClick={() => handleExport(report.id, 'pdf')}
-                  disabled={loadingStates[report.id]}
+                  disabled={loadingStates[report.id] || isExporting}
                 >
                   {loadingStates[report.id] ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -616,7 +614,7 @@ export default function Reports() {
                   size="sm"
                   className="px-3 h-9 border-border/50 hover:bg-muted font-medium text-xs text-muted-foreground hover:text-foreground transition-all"
                   onClick={() => handleExport(report.id, 'csv')}
-                  disabled={loadingStates[report.id]}
+                  disabled={loadingStates[report.id] || isExporting}
                 >
                   CSV
                 </Button>

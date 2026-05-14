@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pill, AlertTriangle, Package, TrendingDown, FileDown, ChevronDown, CheckCircle2, History, Loader2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { exportToPDF, exportToCSV, formatDate } from "@/lib/exportUtils";
+import { formatDate } from "@/lib/exportUtils";
+import { ExportButton } from "@/components/ExportButton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,8 +26,6 @@ export default function Medications() {
   const { profile, user } = useAuth();
   const { stock, isLoading, error, refetch } = useMedicationStock();
   const { addMovement, isAdding } = useStockMutations();
-  const [isExportLoading, setIsExportLoading] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMovementDialog, setShowMovementDialog] = useState(false);
 
   const sortedStock = [...stock].sort((a, b) => {
@@ -40,88 +39,7 @@ export default function Medications() {
   const warning = stock.filter(s => getStockStatus(s).status === 'baixo').length;
   const expired = stock.filter(s => getStockStatus(s).status === 'expirado').length;
 
-  const handleExport = async (format: 'pdf' | 'csv') => {
-    if (stock.length === 0) {
-      toast.error("Não há dados para exportar");
-      return;
-    }
 
-    setIsExportLoading(true);
-    setShowExportMenu(false);
-    const toastId = toast.loading("A preparar exportação de stock...");
-
-    try {
-      let success = false;
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, '0');
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const yyyy = now.getFullYear();
-      const filename = `stock_medicamentos_${dd}${mm}${yyyy}`;
-
-      const exportData = sortedStock.map(s => ({
-        name: s.medications_catalog.name,
-        form: s.medications_catalog.form,
-        strength: s.medications_catalog.strength,
-        current_quantity: s.current_quantity,
-        minimum_quantity: s.minimum_quantity,
-        status_label: getStockStatus(s).label,
-        expiry_date: s.expiry_date ? formatDate(s.expiry_date) : 'N/A',
-      }));
-
-      if (format === 'pdf') {
-        success = exportToPDF({
-          filename,
-          title: "Relatório de Stock de Medicamentos",
-          subtitle: `Farmácia — ${profile?.health_unit_name || "Unidade de Saúde"}`,
-          columns: [
-            { header: "Medicamento", key: "name", width: 60 },
-            { header: "Forma", key: "form" },
-            { header: "Stock Actual", key: "current_quantity", align: 'center', format: (val: any) => `${val} un.` },
-            { header: "Mínimo", key: "minimum_quantity", align: 'center', format: (val: any) => `${val} un.` },
-            { header: "Status", key: "status_label", align: 'center' },
-            { header: "Validade", key: "expiry_date" },
-          ],
-          data: exportData,
-          healthUnitName: profile?.health_unit_name || "Unidade de Saúde",
-          includeTimestamp: true,
-          includeHealthUnit: true,
-          didDrawCell: (dataArg) => {
-            // Highlight status_label column if it says 'Crítico' or 'Expirado'
-            if (dataArg.section === 'body' && (dataArg.column.dataKey === 4 || dataArg.column.dataKey === 'status_label')) {
-              const val = dataArg.cell.raw;
-              if (val === 'Crítico' || val === 'Expirado') {
-                dataArg.doc.setTextColor(220, 38, 38); // red-600
-              }
-            }
-          }
-        });
-      } else {
-        success = exportToCSV({
-          filename,
-          columns: [
-            { header: "Medicamento", key: "name" },
-            { header: "Forma", key: "form" },
-            { header: "Stock Actual", key: "current_quantity" },
-            { header: "Stock Minimo", key: "minimum_quantity" },
-            { header: "Status", key: "status_label" },
-            { header: "Validade", key: "expiry_date" },
-          ],
-          data: exportData,
-        });
-      }
-
-      if (success) {
-        toast.success("Stock exportado com sucesso", { id: toastId });
-      } else {
-        toast.error("Erro ao exportar stock", { id: toastId });
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Ocorreu um erro na exportação", { id: toastId });
-    } finally {
-      setIsExportLoading(false);
-    }
-  };
 
   const handleNewMovement = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -229,41 +147,81 @@ export default function Medications() {
           </Dialog>
 
           <div className="relative">
-            <Button
-              className="gap-2 bg-secondary hover:bg-secondary/80 shadow-sm transition-all h-10 px-5"
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              disabled={isExportLoading}
-            >
-              {isExportLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileDown className="h-4 w-4" />
-              )}
-              Exportar
-              <ChevronDown className="h-3 w-3 opacity-50" />
-            </Button>
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-card border rounded-xl shadow-xl z-30 overflow-hidden animate-in fade-in slide-in-from-top-1">
-                <button
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-muted flex items-center gap-2 transition-colors border-b border-border/50"
-                  onClick={() => handleExport('pdf')}
-                >
-                  <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
-                    <FileDown className="h-3.5 w-3.5" />
-                  </div>
-                  PDF para Impressão
-                </button>
-                <button
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-muted flex items-center gap-2 transition-colors"
-                  onClick={() => handleExport('csv')}
-                >
-                  <div className="bg-muted-foreground/10 p-1.5 rounded-lg text-muted-foreground">
-                    <Package className="h-3.5 w-3.5" />
-                  </div>
-                  CSV para Excel
-                </button>
-              </div>
-            )}
+            <ExportButton
+              formats={['pdf', 'excel', 'csv']}
+              options={{
+                filename: `stock_medicamentos_${new Date().toISOString().split('T')[0]}`,
+                metadata: {
+                  title: 'Relatório de Stock de Medicamentos',
+                  module: 'medications',
+                },
+                sheets: [
+                  {
+                    name: 'Stock Geral',
+                    columns: [
+                      { header: "Medicamento", key: "name", excelWidth: 30 },
+                      { header: "Forma", key: "form", excelWidth: 15 },
+                      { header: "Dosagem", key: "strength", excelWidth: 15 },
+                      { header: "Stock Actual", key: "current_quantity", align: 'center', excelWidth: 15 },
+                      { header: "Stock Mínimo", key: "minimum_quantity", align: 'center', excelWidth: 15 },
+                      { header: "Estado", key: "status_label", align: 'center', excelWidth: 15 },
+                      { header: "Validade", key: "expiry_date", excelWidth: 15 },
+                    ],
+                    data: sortedStock.map(s => ({
+                      name: s.medications_catalog.name,
+                      form: s.medications_catalog.form,
+                      strength: s.medications_catalog.strength,
+                      current_quantity: s.current_quantity,
+                      minimum_quantity: s.minimum_quantity,
+                      status_label: getStockStatus(s).label,
+                      expiry_date: s.expiry_date ? formatDate(s.expiry_date) : 'N/A',
+                    }))
+                  },
+                  {
+                    name: 'Alertas',
+                    columns: [
+                      { header: "Medicamento", key: "name", excelWidth: 30 },
+                      { header: "Forma", key: "form", excelWidth: 15 },
+                      { header: "Dosagem", key: "strength", excelWidth: 15 },
+                      { header: "Stock Actual", key: "current_quantity", align: 'center', excelWidth: 15 },
+                      { header: "Stock Mínimo", key: "minimum_quantity", align: 'center', excelWidth: 15 },
+                      { header: "Estado", key: "status_label", align: 'center', excelWidth: 15 },
+                      { header: "Validade", key: "expiry_date", excelWidth: 15 },
+                    ],
+                    data: sortedStock.filter(s => {
+                      const status = getStockStatus(s).status;
+                      return status === 'critico' || status === 'expirado';
+                    }).map(s => ({
+                      name: s.medications_catalog.name,
+                      form: s.medications_catalog.form,
+                      strength: s.medications_catalog.strength,
+                      current_quantity: s.current_quantity,
+                      minimum_quantity: s.minimum_quantity,
+                      status_label: getStockStatus(s).label,
+                      expiry_date: s.expiry_date ? formatDate(s.expiry_date) : 'N/A',
+                    }))
+                  }
+                ],
+                columns: [
+                  { header: "Medicamento", key: "name", width: 40 },
+                  { header: "Forma", key: "form", width: 30 },
+                  { header: "Dosagem", key: "strength", width: 30 },
+                  { header: "Stock Actual", key: "current_quantity", align: 'center', width: 30 },
+                  { header: "Stock Mínimo", key: "minimum_quantity", align: 'center', width: 30 },
+                  { header: "Estado", key: "status_label", align: 'center', width: 30 },
+                  { header: "Validade", key: "expiry_date", width: 30 },
+                ],
+                data: sortedStock.map(s => ({
+                  name: s.medications_catalog.name,
+                  form: s.medications_catalog.form,
+                  strength: s.medications_catalog.strength,
+                  current_quantity: s.current_quantity,
+                  minimum_quantity: s.minimum_quantity,
+                  status_label: getStockStatus(s).label,
+                  expiry_date: s.expiry_date ? formatDate(s.expiry_date) : 'N/A',
+                }))
+              }}
+            />
           </div>
         </div>
       </div>

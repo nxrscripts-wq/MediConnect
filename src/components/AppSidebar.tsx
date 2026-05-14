@@ -62,12 +62,18 @@ const menuSections: MenuSection[] = [
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
       { title: "Pacientes", url: "/pacientes", icon: Users },
-      { title: "Prontuários", url: "/prontuarios", icon: FileText },
       { title: "Agendamento", url: "/agendamento", icon: CalendarDays },
     ],
   },
   {
-    label: "Administração",
+    label: "Clínica & Cuidados",
+    items: [
+      { title: "Prontuários", url: "/prontuarios", icon: FileText },
+      { title: "Maternidade", url: "/caderno-maternidade", icon: Heart },
+    ],
+  },
+  {
+    label: "Farmácia",
     items: [
       {
         title: "Medicamentos",
@@ -75,6 +81,28 @@ const menuSections: MenuSection[] = [
         icon: Pill,
         allowedRoles: ["farmaceutico", "gestor", "admin"],
       },
+    ],
+  },
+  {
+    label: "Saúde Pública",
+    items: [
+      {
+        title: "Boletim Epid.",
+        url: "/boletim-epidemiologico",
+        icon: Activity,
+        allowedRoles: ["medico", "gestor", "admin"],
+      },
+      {
+        title: "Painel Governamental",
+        url: "/painel-governamental",
+        icon: Shield,
+        allowedRoles: ["gestor", "admin"],
+      },
+    ],
+  },
+  {
+    label: "Administração",
+    items: [
       {
         title: "Relatórios",
         url: "/relatorios",
@@ -92,29 +120,6 @@ const menuSections: MenuSection[] = [
         url: "/configuracoes",
         icon: Settings,
         allowedRoles: ["admin"],
-      },
-    ],
-  },
-  {
-    label: "Maternidade",
-    items: [
-      { title: "Caderno Maternidade", url: "/caderno-maternidade", icon: Heart },
-    ],
-  },
-  {
-    label: "Governamental",
-    items: [
-      {
-        title: "Painel Público",
-        url: "/painel-governamental",
-        icon: Shield,
-        allowedRoles: ["gestor", "admin"],
-      },
-      {
-        title: "Boletim Epid.",
-        url: "/boletim-epidemiologico",
-        icon: Activity,
-        allowedRoles: ["medico", "gestor", "admin"],
       },
     ],
   },

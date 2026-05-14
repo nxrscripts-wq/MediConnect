@@ -41,6 +41,7 @@ import {
   type AppointmentType,
 } from "@/types/appointments";
 import { format } from "date-fns";
+import { ExportButton } from "@/components/ExportButton";
 
 export default function Appointments() {
   const { profile } = useAuth();
@@ -151,7 +152,36 @@ export default function Appointments() {
           <h1 className="page-title">Agendamento</h1>
           <p className="page-subtitle">Gestão de consultas e atendimentos em tempo real</p>
         </div>
-        <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <div className="flex gap-2">
+          <ExportButton
+            options={{
+              filename: `fila_atendimento_${new Date().toISOString().split('T')[0]}`,
+              metadata: {
+                title: 'Fila de Atendimento',
+                subtitle: `Data: ${new Date().toLocaleDateString('pt-AO')}`,
+                module: 'appointments',
+              },
+              columns: [
+                { key: 'scheduled_time', header: 'Horário', width: 25 },
+                { key: 'patient_name', header: 'Paciente', width: 50 },
+                { key: 'patient_code', header: 'Código PAC', width: 30 },
+                { key: 'type', header: 'Tipo', width: 40 },
+                { key: 'professional', header: 'Profissional', width: 40 },
+                { key: 'status', header: 'Estado', width: 30 },
+                { key: 'priority', header: 'Prioridade', width: 30 },
+              ],
+              data: appointments.map(a => ({
+                scheduled_time: a.scheduled_time?.substring(0, 5) || '—',
+                patient_name: a.patients?.full_name ?? '—',
+                patient_code: a.patients?.patient_code ?? '—',
+                type: APPOINTMENT_TYPE_LABELS[a.appointment_type],
+                professional: a.user_profiles?.full_name ?? '—',
+                status: APPOINTMENT_STATUS_CONFIG[a.status]?.label ?? a.status,
+                priority: a.priority,
+              }))
+            }}
+          />
+          <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />
@@ -255,6 +285,7 @@ export default function Appointments() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Quick Stats */}

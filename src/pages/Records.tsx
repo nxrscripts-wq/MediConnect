@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useRecentRecords } from '@/hooks/useRecords'
 import { RECORD_TYPE_LABELS } from '@/types/records'
 import { formatDate } from '@/lib/exportUtils'
+import { ExportButton } from '@/components/ExportButton'
 
 export default function Records() {
   const [search, setSearch] = useState('')
@@ -42,6 +43,31 @@ export default function Records() {
           <h1 className="page-title">Prontuários</h1>
           <p className="page-subtitle">Histórico clínico digital e gestão de registos</p>
         </div>
+        <ExportButton
+          options={{
+            filename: `prontuarios_${new Date().toISOString().split('T')[0]}`,
+            metadata: {
+              title: 'Prontuários Digitais',
+              module: 'records',
+            },
+            columns: [
+              { key: 'patient_code', header: 'Código PAC', width: 25 },
+              { key: 'patient_name', header: 'Paciente', width: 50 },
+              { key: 'type', header: 'Tipo', width: 30 },
+              { key: 'title', header: 'Título', width: 40 },
+              { key: 'professional', header: 'Profissional', width: 40 },
+              { key: 'date', header: 'Data', width: 25 },
+            ],
+            data: records.map(r => ({
+              patient_code: r.patients?.patient_code ?? '—',
+              patient_name: r.patients?.full_name ?? '—',
+              type: RECORD_TYPE_LABELS[r.record_type] ?? r.record_type,
+              title: r.title,
+              professional: r.user_profiles?.full_name ?? '—',
+              date: formatDate(r.occurred_at),
+            }))
+          }}
+        />
       </div>
 
       <div className="flex items-center gap-3">
