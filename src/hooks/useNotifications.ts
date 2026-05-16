@@ -1,140 +1,159 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { Notification, NotificationType, NotificationSeverity } from '@/types/notifications';
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { toast } from 'sonner'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  getNotifications,
+  markAsRead,
+  dismissNotification,
+  subscribeToNotifications,
+} from '@/services/notificationService'
+import type { Notification } from '@/types/notifications'
 
-export const useNotifications = () => {
-  const { profile } = useAuth();
-  const queryClient = useQueryClient();
-  const healthUnitId = profile?.health_unit_id;
+export function useNotifications() {
+  const { user } = useAuth()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
-  // Fetch notifications from Supabase
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications', healthUnitId],
-    queryFn: async () => {
-      const query = supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
+  // Load initial notifications
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) return
+    setIsLoading(true)
+    try {
+      const data = await getNotifications(true) // load all (read + unread)
+      setNotifications(data)
+    } catch {
+      console.warn('[Notifications] Failed to load')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user?.id])
 
-      // Filter by health unit if available
-      if (healthUnitId) {
-        query.or(`health_unit_id.eq.${healthUnitId},health_unit_id.is.null`);
-      }
+  // Realtime subscription
+  useEffect(() => {
+    if (!user?.id) return
 
-      const { data, error } = await query;
+    loadNotifications()
 
-      if (error) {
-        // Table doesn't exist yet — return empty
-        if ((error as any).code === '42P01') return [];
-        console.warn('Error fetching notifications:', error.message);
-        return [];
-      }
+    const cleanup = subscribeToNotifications(user.id, (newNotification) => {
+      setNotifications(prev => {
+        const exists = prev.find(n => n.id === newNotification.id)
+        if (exists) {
+          // UPDATE: replace existing
+          return prev.map(n => n.id === newNotification.id ? newNotification : n)
+        }
+        // INSERT: add to top + show toast
+        if (!newNotification.is_read) {
+          showNotificationToast(newNotification)
+        }
+        return [newNotification, ...prev]
+      })
+    })
 
-      return (data ?? []) as Notification[];
-    },
-    staleTime: 1000 * 60 * 2,
-    refetchInterval: 1000 * 60 * 3,
-    enabled: true,
-  });
+    cleanupRef.current = cleanup
 
-  // Mark single notification as read
-  const markAsReadMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-      if (error && (error as any).code !== '42P01') {
-        console.warn('Error marking notification as read:', error.message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
+    return () => {
+      if (cleanupRef.current) cleanupRef.current()
+    }
+  }, [user?.id, loadNotifications])
 
-  // Mark all as read
-  const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
-      if (!healthUnitId) return;
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .or(`health_unit_id.eq.${healthUnitId},health_unit_id.is.null`)
-        .eq('is_read', false);
-      if (error && (error as any).code !== '42P01') {
-        console.warn('Error marking all as read:', error.message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
+  function showNotificationToast(notification: Notification) {
+    const config: Record<string, () => void> = {
+      critical: () => toast.error(notification.title, {
+        description: notification.message,
+        duration: 6000,
+      }),
+      warning: () => toast.warning(notification.title, {
+        description: notification.message,
+        duration: 5000,
+      }),
+      info: () => toast.info(notification.title, {
+        description: notification.message,
+        duration: 4000,
+      }),
+      success: () => toast.success(notification.title, {
+        description: notification.message,
+        duration: 3000,
+      }),
+    }
+    config[notification.severity]?.()
+  }
 
-  // Dismiss (delete) a notification
-  const dismissMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id);
-      if (error && (error as any).code !== '42P01') {
-        console.warn('Error dismissing notification:', error.message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
+  const handleMarkAsRead = useCallback(async (id: string) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+    )
+    try {
+      await markAsRead([id])
+    } catch {
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: false } : n)
+      )
+    }
+  }, [])
 
-  const markAsRead = useCallback((id: string) => {
-    markAsReadMutation.mutate(id);
-  }, [markAsReadMutation]);
+  const handleMarkAllAsRead = useCallback(async () => {
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id)
+    if (unreadIds.length === 0) return
 
-  const markAllAsRead = useCallback(() => {
-    markAllAsReadMutation.mutate();
-  }, [markAllAsReadMutation]);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    try {
+      await markAsRead()
+      toast.success('Todas as notificações marcadas como lidas')
+    } catch {
+      await loadNotifications()
+    }
+  }, [notifications, loadNotifications])
 
-  const dismiss = useCallback((id: string) => {
-    dismissMutation.mutate(id);
-  }, [dismissMutation]);
+  const handleDismiss = useCallback(async (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+    try {
+      await dismissNotification(id)
+    } catch {
+      await loadNotifications()
+    }
+  }, [loadNotifications])
 
-  const unread_count = useMemo(() =>
-    notifications.filter(n => !n.is_read).length,
-  [notifications]);
+  function formatRelativeTime(isoString: string): string {
+    const date = new Date(isoString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    const diffMin = Math.floor(diffSec / 60)
+    const diffHour = Math.floor(diffMin / 60)
+    const diffDay = Math.floor(diffHour / 24)
 
-  const critical_count = useMemo(() =>
-    notifications.filter(n => n.severity === 'critical' && !n.is_read).length,
-  [notifications]);
+    if (diffSec < 30)  return 'Agora mesmo'
+    if (diffSec < 60)  return `Há ${diffSec} seg`
+    if (diffMin < 60)  return `Há ${diffMin} min`
+    if (diffHour < 24) return `Há ${diffHour}h`
+    if (diffDay < 7)   return `Há ${diffDay} dia${diffDay > 1 ? 's' : ''}`
+    return date.toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' })
+  }
 
-  // Formatação de tempo relativo
-  const formatRelativeTime = (isoString: string) => {
-    const date = new Date(isoString);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInMinutes < 1) return 'Agora mesmo';
-    if (diffInMinutes < 60) return `Há ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
-    if (diffInHours < 24) return `Há ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
-    if (diffInDays < 7) return `Há ${diffInDays} dia${diffInDays > 1 ? 's' : ''}`;
-
-    return date.toLocaleDateString('pt-AO');
-  };
+  const visibleNotifications = notifications.filter(n => !n.is_dismissed)
+  const unreadCount = visibleNotifications.filter(n => !n.is_read).length
+  const criticalCount = visibleNotifications.filter(n => !n.is_read && n.severity === 'critical').length
+  const displayNotifications = showAll ? visibleNotifications : visibleNotifications.filter(n => !n.is_read)
 
   return {
-    notifications,
-    unread_count,
-    critical_count,
+    notifications: displayNotifications,
+    allNotifications: visibleNotifications,
+    unreadCount,
+    criticalCount,
     isLoading,
-    markAsRead,
-    markAllAsRead,
-    dismiss,
-    formatRelativeTime
-  };
-};
+    isOpen,
+    setIsOpen,
+    showAll,
+    setShowAll,
+    toggleOpen: () => setIsOpen(v => !v),
+    close: () => setIsOpen(false),
+    markAsRead: handleMarkAsRead,
+    markAllAsRead: handleMarkAllAsRead,
+    dismiss: handleDismiss,
+    refresh: loadNotifications,
+    formatRelativeTime,
+  }
+}

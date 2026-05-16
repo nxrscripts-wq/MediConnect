@@ -17,6 +17,7 @@ import {
   LogOut,
   Building2,
   ShieldCheck,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -302,6 +303,13 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
                   </span>
                 </div>
               </div>
+              <button
+                onClick={() => navigate('/perfil')}
+                title="O meu perfil"
+                className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <UserCog className="h-3.5 w-3.5" />
+              </button>
               <button
                 onClick={handleSignOut}
                 title="Terminar sessão"

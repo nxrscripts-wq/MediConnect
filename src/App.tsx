@@ -22,6 +22,7 @@ import MaternityNotebook from "@/pages/MaternityNotebook";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
 import Admin from "@/pages/Admin";
+import Profile from "@/pages/Profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/prontuarios" element={<Records />} />
               <Route path="/agendamento" element={<Appointments />} />
               <Route path="/caderno-maternidade" element={<MaternityNotebook />} />
+              <Route path="/perfil" element={<Profile />} />
 
               {/* Roles: Farmacêutico, Gestor, Admin */}
               <Route

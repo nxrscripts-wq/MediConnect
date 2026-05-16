@@ -43,7 +43,7 @@ export function CreateUserDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nome Completo</Label>
               <Input required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
@@ -54,7 +54,7 @@ export function CreateUserDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Papel</Label>
               <Select value={formData.role} onValueChange={(v: any) => setFormData({...formData, role: v})}>

@@ -1,628 +1,502 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getHealthUnit } from "@/services/settingsService";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Users, Stethoscope, FileText, CheckCircle2, UserPlus,
+  Pill, ShieldCheck, TestTubes, BarChart3, CalendarDays,
+  RefreshCw, Loader2, TrendingUp, TrendingDown, Minus,
+} from 'lucide-react'
 import {
-  FileDown,
-  Save,
-  Printer,
-  Stethoscope,
-  Siren,
-  Users,
-  BedDouble,
-  FlaskConical,
-  ScanLine,
-  Scissors,
-  Syringe,
-  Baby,
-  ClipboardList,
-  SmilePlus,
-  MessageCircle,
-  BarChart3,
-} from "lucide-react";
-import { toast } from "sonner";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
+} from 'recharts'
 
-function SectionInput({ className = "" }: { className?: string }) {
-  return (
-    <Input
-      type="text"
-      className={`h-8 text-sm text-center rounded-none border-muted-foreground/30 ${className}`}
-    />
-  );
+import { useAuth } from '@/contexts/AuthContext'
+import { useMonthlyStatistics } from '@/hooks/useMonthlyStatistics'
+import { ExportButton } from '@/components/ExportButton'
+import { ChartTooltip } from '@/components/charts/ChartTooltip'
+import { StatKPI } from '@/components/charts/StatKPI'
+import {
+  MONTH_NAMES, CHART_COLORS, PIE_COLORS,
+} from '@/types/statistics'
+
+// ── Helpers ──────────────────────────────────────────────
+
+function calcTrend(current: number, previous: number): string {
+  if (!previous || previous === 0) return '—'
+  const trend = ((current - previous) / previous) * 100
+  return (trend > 0 ? '+' : '') + trend.toFixed(1)
 }
 
-function StatTable({
-  headers,
-  rows,
-  columnCount = 1,
-}: {
-  headers?: string[];
-  rows: { label: string; isTotal?: boolean; isSubheader?: boolean; indent?: boolean; cols?: number }[];
-  columnCount?: number;
-}) {
+function EmptyChartState({ message = 'Sem dados para o período seleccionado' }: { message?: string }) {
   return (
-    <table className="w-full text-sm">
-      {headers && (
-        <thead>
-          <tr className="border-b bg-muted/30">
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{headers[0]}</th>
-            {headers.slice(1).map((h, i) => (
-              <th key={i} className="px-2 py-2 text-center text-xs font-medium text-muted-foreground w-20">{h}</th>
-            ))}
-          </tr>
-        </thead>
-      )}
-      <tbody>
-        {rows.map((row, idx) => {
-          if (row.isSubheader) {
-            return (
-              <tr key={idx} className="border-b bg-muted/20">
-                <td className="px-3 py-1.5 text-xs font-semibold" colSpan={columnCount + 1}>{row.label}</td>
-              </tr>
-            );
-          }
-          const cols = row.cols ?? columnCount;
-          return (
-            <tr key={idx} className={`border-b ${row.isTotal ? "bg-muted/20 font-medium" : ""}`}>
-              <td className={`px-3 py-1.5 text-xs ${row.indent ? "pl-6" : ""}`}>{row.label}</td>
-              {Array.from({ length: cols }).map((_, i) => (
-                <td key={i} className="p-0"><SectionInput /></td>
-              ))}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
+    <div className="flex flex-col items-center justify-center h-48 text-center text-neutral-400">
+      <BarChart3 className="h-8 w-8 mb-2 opacity-30" />
+      <p className="text-xs">{message}</p>
+      <p className="text-[10px] mt-1">
+        Os dados aparecem após consultas e registos no período
+      </p>
+    </div>
+  )
 }
 
-const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+// ── Main Component ───────────────────────────────────────
 
 export default function MonthlyStatistics() {
-  const { profile } = useAuth();
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const { profile } = useAuth()
+  const {
+    mainStats, dailySeries, distribution, sixMonths, demographics,
+    isLoading, isFetching, refetch,
+    period, setPeriod, periodOptions,
+  } = useMonthlyStatistics()
 
-  const { data: unit } = useQuery({
-    queryKey: ['health-unit', profile?.health_unit_id],
-    queryFn: () => getHealthUnit(profile!.health_unit_id!),
-    enabled: !!profile?.health_unit_id,
-    staleTime: 1000 * 60 * 10,
-  });
+  // ── Export data ──────────────────────────────────────
 
-  const { data: reportData, isLoading: isReportLoading } = useQuery({
-    queryKey: ['monthly-report', profile?.health_unit_id, month, year],
-    queryFn: async () => {
-      if (!profile?.health_unit_id || !month) return null
-      const { data, error } = await supabase.rpc('get_monthly_report', {
-        unit_id: profile.health_unit_id,
-        month: parseInt(month),
-        year: parseInt(year),
-      })
-      if ((error as any)?.code === '42883') return null
-      if (error) throw new Error(error.message)
-      return data
-    },
-    enabled: !!profile?.health_unit_id && !!month && !!year,
-    staleTime: 1000 * 60 * 5,
-  })
+  const exportData = mainStats ? [
+    { indicador: 'Pacientes Activos',    valor: mainStats.kpis.total_patients,         anterior: '—',                                       variacao: '—' },
+    { indicador: 'Novos Pacientes',      valor: mainStats.kpis.new_patients,            anterior: mainStats.kpis.prev_new_patients,           variacao: calcTrend(mainStats.kpis.new_patients, mainStats.kpis.prev_new_patients) + '%' },
+    { indicador: 'Total de Consultas',   valor: mainStats.kpis.total_appointments,      anterior: mainStats.kpis.prev_appointments,            variacao: calcTrend(mainStats.kpis.total_appointments, mainStats.kpis.prev_appointments) + '%' },
+    { indicador: 'Consultas Concluídas', valor: mainStats.kpis.completed_appointments,  anterior: '—',                                       variacao: '—' },
+    { indicador: 'Taxa de Conclusão',    valor: mainStats.kpis.completion_rate + '%',   anterior: '—',                                       variacao: '—' },
+    { indicador: 'Prontuários Gerados',  valor: mainStats.kpis.total_records,           anterior: mainStats.kpis.prev_records,                 variacao: calcTrend(mainStats.kpis.total_records, mainStats.kpis.prev_records) + '%' },
+    { indicador: 'Prescrições',          valor: mainStats.kpis.total_prescriptions,     anterior: '—',                                       variacao: '—' },
+    { indicador: 'Vacinações',           valor: mainStats.kpis.total_vaccinations,      anterior: '—',                                       variacao: '—' },
+    { indicador: 'Exames Solicitados',   valor: mainStats.kpis.total_exams,             anterior: '—',                                       variacao: '—' },
+  ] : []
 
-  const handleSave = async () => {
-    toast.success("Relatório mensal guardado com sucesso!");
-  };
+  // ── Summary table rows ──────────────────────────────
+
+  const summaryRows = mainStats ? [
+    { label: 'Pacientes Activos (total)',         current: mainStats.kpis.total_patients,         previous: null as number | null },
+    { label: 'Novos Pacientes Registados',        current: mainStats.kpis.new_patients,            previous: mainStats.kpis.prev_new_patients },
+    { label: 'Total de Consultas Agendadas',      current: mainStats.kpis.total_appointments,      previous: mainStats.kpis.prev_appointments },
+    { label: 'Consultas Concluídas',              current: mainStats.kpis.completed_appointments,  previous: null as number | null },
+    { label: 'Consultas Canceladas',              current: mainStats.kpis.cancelled_appointments,  previous: null as number | null },
+    { label: 'Taxa de Conclusão (%)',             current: mainStats.kpis.completion_rate,          previous: null as number | null, suffix: '%' },
+    { label: 'Prontuários Gerados',               current: mainStats.kpis.total_records,            previous: mainStats.kpis.prev_records },
+    { label: 'Prescrições Emitidas',              current: mainStats.kpis.total_prescriptions,      previous: null as number | null },
+    { label: 'Vacinações Administradas',          current: mainStats.kpis.total_vaccinations,       previous: null as number | null },
+    { label: 'Exames Solicitados',                current: mainStats.kpis.total_exams,               previous: null as number | null },
+  ] : []
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-blue-500" />
-            Informação Mensal
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Centros e Postos de Saúde — Relatório Estatístico
-          </p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* ── HEADER ───────────────────────────────── */}
+      <div className="space-y-4 mb-6">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="gov-badge-oficial">
+            <BarChart3 className="h-2.5 w-2.5" />
+            Estatísticas Oficiais
+          </span>
+          <span className="text-[10px] text-neutral-400 uppercase tracking-wider">
+            Confidencial · Uso Interno MINSA
+          </span>
         </div>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50">
-            GEPE — Min. Saúde
-          </Badge>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Printer className="h-4 w-4" />
-            Imprimir
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <FileDown className="h-4 w-4" />
-            Exportar
-          </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5" size="sm">
-            <Save className="h-4 w-4" />
-            Guardar
-          </Button>
-        </div>
-      </div>
 
-      {/* Info banner */}
-      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50">
-        <CardContent className="p-4">
-          <p className="text-sm text-blue-800 italic flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 shrink-0" />
-            República de Angola — Ministério da Saúde — GEPE / Dep. Nacional de Estatística
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Identification */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-blue-500" />
-            Identificação
-          </CardTitle>
-          <CardDescription>Dados da unidade sanitária e período</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
-            <Label>Mês</Label>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+            <h1 className="text-xl font-bold text-neutral-900 tracking-tight">
+              Informação Estatística Mensal
+            </h1>
+            <p className="text-sm text-neutral-500 mt-0.5">
+              {profile?.health_unit_name} · {MONTH_NAMES[period.month]} de {period.year}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {isFetching && <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />}
+
+            <Select
+              value={`${period.month}-${period.year}`}
+              onValueChange={(val) => {
+                const [m, y] = val.split('-').map(Number)
+                setPeriod({ month: m, year: y })
+              }}
+            >
+              <SelectTrigger className="w-44 h-8 text-xs border-neutral-300">
+                <CalendarDays className="h-3 w-3 mr-1.5 text-neutral-400" />
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {months.map((m, i) => (
-                  <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                {periodOptions.map(p => (
+                  <SelectItem
+                    key={`${p.month}-${p.year}`}
+                    value={`${p.month}-${p.year}`}
+                    className="text-xs"
+                  >
+                    {MONTH_NAMES[p.month]} {p.year}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label>Ano</Label>
-            <Input value={year} onChange={(e) => setYear(e.target.value)} />
-          </div>
-          <div>
-            <Label>Unidade Sanitária</Label>
-            <Input value={unit?.name ?? ''} readOnly className="bg-muted/50" />
-          </div>
-          <div>
-            <Label>Município</Label>
-            <Input value={unit?.municipality ?? ''} readOnly className="bg-muted/50" />
-          </div>
-          <div>
-            <Label>Província</Label>
-            <Input value={unit?.province ?? ''} readOnly className="bg-muted/50" />
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Tabs */}
-      <Tabs defaultValue="consultas" className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="consultas" className="text-xs gap-1"><Stethoscope className="h-3 w-3" />Consultas</TabsTrigger>
-          <TabsTrigger value="urgencia" className="text-xs gap-1"><Siren className="h-3 w-3" />Urgência</TabsTrigger>
-          <TabsTrigger value="idade" className="text-xs gap-1"><Users className="h-3 w-3" />Gr. Idade</TabsTrigger>
-          <TabsTrigger value="hospitalar" className="text-xs gap-1"><BedDouble className="h-3 w-3" />Hospitalar</TabsTrigger>
-          <TabsTrigger value="laboratorio" className="text-xs gap-1"><FlaskConical className="h-3 w-3" />Laboratório</TabsTrigger>
-          <TabsTrigger value="raiosx" className="text-xs gap-1"><ScanLine className="h-3 w-3" />Raios X</TabsTrigger>
-          <TabsTrigger value="cirurgia" className="text-xs gap-1"><Scissors className="h-3 w-3" />Cirurgia</TabsTrigger>
-          <TabsTrigger value="anestesia" className="text-xs gap-1"><Syringe className="h-3 w-3" />Anestesia</TabsTrigger>
-          <TabsTrigger value="materno" className="text-xs gap-1"><Baby className="h-3 w-3" />Materno-Inf.</TabsTrigger>
-          <TabsTrigger value="partos" className="text-xs gap-1"><Baby className="h-3 w-3" />Partos</TabsTrigger>
-          <TabsTrigger value="curetagens" className="text-xs gap-1"><Scissors className="h-3 w-3" />Curetagens</TabsTrigger>
-          <TabsTrigger value="estomato" className="text-xs gap-1"><SmilePlus className="h-3 w-3" />Estomatologia</TabsTrigger>
-        </TabsList>
+            <ExportButton
+              formats={['pdf', 'excel', 'word', 'print']}
+              label="Exportar"
+              variant="outline"
+              size="sm"
+              options={{
+                filename: `estatisticas_${period.month}_${period.year}`,
+                orientation: 'landscape',
+                metadata: {
+                  title: 'Informação Estatística Mensal',
+                  subtitle: `${MONTH_NAMES[period.month]} de ${period.year}`,
+                  module: 'monthly_stats',
+                  period: `${MONTH_NAMES[period.month]} ${period.year}`,
+                  totalRecords: mainStats?.kpis.total_appointments ?? 0,
+                },
+                columns: [
+                  { key: 'indicador', header: 'Indicador', excelWidth: 35 },
+                  { key: 'valor',     header: 'Valor',     excelWidth: 15, align: 'right' as const },
+                  { key: 'anterior',  header: 'Mês Anterior', excelWidth: 15, align: 'right' as const },
+                  { key: 'variacao',  header: 'Variação',  excelWidth: 15, align: 'right' as const },
+                ],
+                data: exportData,
+              }}
+            />
 
-        {/* 1.A Consultas Externas */}
-        <TabsContent value="consultas">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Stethoscope className="h-5 w-5 text-blue-500" />
-                1.A — Consultas Externas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                headers={["Especialidades", "Médicos", "Enfermeir.", "Total"]}
-                columnCount={3}
-                rows={[
-                  { label: "1.1 Medicina" },
-                  { label: "1.2 Pediatria" },
-                  { label: "1.3 Cirurgia" },
-                  { label: "1.4 Puericultura" },
-                  { label: "1.5 Obstetrícia" },
-                  { label: "1.6 Ginecologia" },
-                  { label: "1.7 Plan. Familiar" },
-                  { label: "1.7.1 1ª Vez", indent: true },
-                  { label: "1.7 Total", isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 2.B Banco de Urgência */}
-        <TabsContent value="urgencia">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Siren className="h-5 w-5 text-red-500" />
-                2.B — Banco de Urgência
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                headers={["Especialidade", "Médicos", "Enfermeir.", "Total"]}
-                columnCount={3}
-                rows={[
-                  { label: "2.1 Medicina" },
-                  { label: "2.2 Pediatria" },
-                  { label: "2.3 Cirurgia" },
-                  { label: "2.4 Gineco-Obstetrícia" },
-                  { label: "2.6 Total", isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 3.C Grupos de Idade */}
-        <TabsContent value="idade">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-500" />
-                3.C — Grupos de Idade
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground" rowSpan={2}>Idade</th>
-                    <th className="px-2 py-1 text-center text-xs font-medium text-muted-foreground" colSpan={2}>Banco de Urgência</th>
-                    <th className="px-2 py-1 text-center text-xs font-medium text-muted-foreground" colSpan={2}>Consultas Externas</th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-muted-foreground w-16" rowSpan={2}>Total</th>
-                  </tr>
-                  <tr className="border-b bg-muted/30">
-                    <th className="px-2 py-1 text-center text-xs font-medium text-muted-foreground w-16">Médicos</th>
-                    <th className="px-2 py-1 text-center text-xs font-medium text-muted-foreground w-16">Enferm.</th>
-                    <th className="px-2 py-1 text-center text-xs font-medium text-muted-foreground w-16">Médicos</th>
-                    <th className="px-2 py-1 text-center text-xs font-medium text-muted-foreground w-16">Enferm.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { label: "3.1 — 1 Ano", isTotal: false },
-                    { label: "3.2 1-4 Anos", isTotal: false },
-                    { label: "3.3 5-14 Anos", isTotal: false },
-                    { label: "Total", isTotal: true },
-                  ].map((row, idx) => (
-                    <tr key={idx} className={`border-b ${row.isTotal ? "bg-muted/20 font-medium" : ""}`}>
-                      <td className="px-3 py-1.5 text-xs">{row.label}</td>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <td key={i} className="p-0"><SectionInput /></td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 4.D Movimento Hospitalar */}
-        <TabsContent value="hospitalar">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BedDouble className="h-5 w-5 text-blue-500" />
-                4.D — Movimento Hospitalar
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "4.1 Exist. Anterior" },
-                  { label: "4.2 Admitidos" },
-                  { label: "4.3 Saídas" },
-                  { label: "4.3.1 Vivos", indent: true },
-                  { label: "4.3.2 Falecidos", indent: true },
-                  { label: "4.3.2.1 (-)48 horas", indent: true },
-                  { label: "4.3.2.2 48 horas e +", indent: true },
-                  { label: "4.4 Exist. Actual" },
-                  { label: "4.5 Média de Camas" },
-                  { label: "4.6 Dias doentes" },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 5.E Laboratório */}
-        <TabsContent value="laboratorio">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FlaskConical className="h-5 w-5 text-green-500" />
-                5.E — Laboratório Clínico
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "5.1 Hematologia" },
-                  { label: "5.2 G. Sanguíneo" },
-                  { label: "5.3 Serologia" },
-                  { label: "5.4 Urinas" },
-                  { label: "5.5 Fezes" },
-                  { label: "5.6 Gota Espessa" },
-                  { label: "5.7 Veloc. Hemossedimentação" },
-                  { label: "5.8 BK / Bioquímica" },
-                  { label: "5.9 Falciformação" },
-                  { label: "5.10 Outras" },
-                  { label: "5.11 Total", isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 6.F Raios X */}
-        <TabsContent value="raiosx">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ScanLine className="h-5 w-5 text-blue-500" />
-                6.F — Raios X
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "6.1 Casos Examinados" },
-                  { label: "6.2 Placas Utilizadas" },
-                  { label: "6.2.1 Correctas", indent: true },
-                  { label: "6.2.2 Defeituosas", indent: true },
-                  { label: "Placas Segundo Tamanho", isSubheader: true },
-                  { label: "6.3.1 18x24" },
-                  { label: "6.3.2 20x40" },
-                  { label: "6.3.3 24x30" },
-                  { label: "6.3.4 30x40" },
-                  { label: "6.3.5 35x35" },
-                  { label: "6.3.6 35x43" },
-                  { label: "Outras" },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 7.G Cirurgia */}
-        <TabsContent value="cirurgia">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Scissors className="h-5 w-5 text-blue-500" />
-                7.G — Operações Grandes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                headers={["Especialidade", "Urgentes", "Não Urgent.", "Pequenas"]}
-                columnCount={3}
-                rows={[
-                  { label: "7.1 Cirurgia" },
-                  { label: "7.2 Ginecologia" },
-                  { label: "7.3 Cesarianas" },
-                  { label: "7.4 Total", isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 8. Anestesia */}
-        <TabsContent value="anestesia">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Syringe className="h-5 w-5 text-purple-500" />
-                8 — Anestesia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "8.1 Geral" },
-                  { label: "8.2 Raquideas" },
-                  { label: "8.3 Local" },
-                  { label: "8.4 Outras" },
-                  { label: "8.5 Total", isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 9.I Saúde Materno Infantil */}
-        <TabsContent value="materno">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Baby className="h-5 w-5 text-pink-500" />
-                9.I — Saúde Materno Infantil
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "9.1 Consulta Prenatal", isSubheader: true },
-                  { label: "9.1.1 1ª Vez", indent: true },
-                  { label: "9.1.2 Outras", indent: true },
-                  { label: "9.1.3 Total", indent: true, isTotal: true },
-                  { label: "9.2 Puericultura", isSubheader: true },
-                  { label: "9.2.1 1ª Vez — 1 Ano", indent: true },
-                  { label: "9.2.2 1ª Vez 1-14 Anos", indent: true },
-                  { label: "Outras", indent: true },
-                  { label: "Total", indent: true, isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 10.J Partos */}
-        <TabsContent value="partos">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Baby className="h-5 w-5 text-pink-500" />
-                10.J — Partos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 space-y-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "10.1 Fisiológico" },
-                  { label: "10.2 Cesarianas" },
-                  { label: "10.2.1 1ª Vez", indent: true },
-                  { label: "10.3 F. Mecânica" },
-                  { label: "10.4 Total", isTotal: true },
-                ]}
-              />
-              <div className="border-t">
-                <StatTable
-                  headers={["Nascimentos — Pesos/Gra", "Mortos", "Vivos", "Falecidos"]}
-                  columnCount={3}
-                  rows={[
-                    { label: "10.5 (-)2500g" },
-                    { label: "10.6 2500g e mais" },
-                    { label: "10.7 Não pesados" },
-                    { label: "10.8 Total", isTotal: true },
-                  ]}
-                />
-              </div>
-              <div className="px-3 py-3 text-xs text-muted-foreground border-t flex items-center gap-2">
-                <span>Obs: Houve Partos Gemelares?</span>
-                <SectionInput className="w-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 11.K Curetagens */}
-        <TabsContent value="curetagens">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Scissors className="h-5 w-5 text-blue-500" />
-                11.K — Curetagens ou Raspagem
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "11.1 Diagnóst." },
-                  { label: "11.2 Terapeut." },
-                  { label: "11.3 Outras" },
-                  { label: "11.4 Total", isTotal: true },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 12.L Estomatologia */}
-        <TabsContent value="estomato">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <SmilePlus className="h-5 w-5 text-blue-500" />
-                12.L — Estomatologia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StatTable
-                columnCount={1}
-                rows={[
-                  { label: "12.1 Consultas" },
-                  { label: "12.2 Exames clínicos" },
-                  { label: "12.3 Extracções" },
-                  { label: "12.4 Obstrução" },
-                  { label: "12.5 Óxidos" },
-                  { label: "12.6 Profilaxia" },
-                  { label: "12.7 Urgências" },
-                  { label: "12.8" },
-                  { label: "12.9" },
-                  { label: "12.10" },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Footer / Signatures */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-blue-500" />
-            Assinaturas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div>
-                <Label>Confeccionado por</Label>
-                <Input placeholder="Nome" />
-              </div>
-              <div>
-                <Label>Cargo</Label>
-                <Input placeholder="Cargo / Função" />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <Label>Aprovado por</Label>
-                <Input placeholder="Nome" />
-              </div>
-              <div>
-                <Label>Cargo</Label>
-                <Input placeholder="Cargo / Função" />
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end mt-6 gap-2">
-            <Button variant="outline">Cancelar</Button>
-            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5">
-              <Save className="h-4 w-4" />
-              Guardar Relatório
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => refetch()}>
+              <RefreshCw className="h-3.5 w-3.5 text-neutral-400" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* ── KPI ROW 1 ────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-lg" />
+          ))
+        ) : mainStats && (
+          <>
+            <StatKPI
+              label="Pacientes Activos"
+              value={mainStats.kpis.total_patients}
+              icon={Users}
+              borderColor={CHART_COLORS.primary}
+              description={`${mainStats.kpis.new_patients} novos este mês`}
+            />
+            <StatKPI
+              label="Total de Consultas"
+              value={mainStats.kpis.total_appointments}
+              previousValue={mainStats.kpis.prev_appointments}
+              icon={Stethoscope}
+              borderColor={CHART_COLORS.accent}
+              description={`${mainStats.kpis.completed_appointments} concluídas`}
+            />
+            <StatKPI
+              label="Taxa de Conclusão"
+              value={mainStats.kpis.completion_rate}
+              format="percent"
+              icon={CheckCircle2}
+              borderColor={CHART_COLORS.success}
+              description={`${mainStats.kpis.cancelled_appointments} canceladas`}
+            />
+            <StatKPI
+              label="Prontuários Gerados"
+              value={mainStats.kpis.total_records}
+              previousValue={mainStats.kpis.prev_records}
+              icon={FileText}
+              borderColor="#7C3AED"
+            />
+          </>
+        )}
+      </div>
+
+      {/* ── KPI ROW 2 ────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))
+        ) : mainStats && (
+          <>
+            <StatKPI
+              label="Novos Pacientes"
+              value={mainStats.kpis.new_patients}
+              previousValue={mainStats.kpis.prev_new_patients}
+              icon={UserPlus}
+              borderColor={CHART_COLORS.secondary}
+            />
+            <StatKPI
+              label="Prescrições"
+              value={mainStats.kpis.total_prescriptions}
+              icon={Pill}
+              borderColor={CHART_COLORS.warning}
+            />
+            <StatKPI
+              label="Vacinações"
+              value={mainStats.kpis.total_vaccinations}
+              icon={ShieldCheck}
+              borderColor={CHART_COLORS.success}
+            />
+            <StatKPI
+              label="Exames Solicitados"
+              value={mainStats.kpis.total_exams}
+              icon={TestTubes}
+              borderColor={CHART_COLORS.danger}
+            />
+          </>
+        )}
+      </div>
+
+      {/* ── CHARTS ROW 1 ─────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Activity */}
+        <div className="gov-card p-5">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <span className="gov-section-title">Actividade Diária — {MONTH_NAMES[period.month]}</span>
+            <div className="flex items-center gap-3 text-[10px]">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full inline-block" style={{ background: CHART_COLORS.primary }} /> Consultas</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full inline-block" style={{ background: CHART_COLORS.success }} /> Pacientes</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full inline-block" style={{ background: CHART_COLORS.warning }} /> Prontuários</span>
+            </div>
+          </div>
+          {isLoading ? <Skeleton className="h-64 w-full rounded" /> :
+           dailySeries.length === 0 ? <EmptyChartState /> : (
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={dailySeries} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<ChartTooltip />} />
+                <Line dataKey="appointments" name="Consultas" stroke={CHART_COLORS.primary} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: CHART_COLORS.primary }} />
+                <Line dataKey="patients" name="Pacientes" stroke={CHART_COLORS.success} strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 2" />
+                <Line dataKey="records" name="Prontuários" stroke={CHART_COLORS.warning} strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="2 2" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* 6-Month Comparison */}
+        <div className="gov-card p-5">
+          <span className="gov-section-title block mb-4">Evolução — Últimos 6 Meses</span>
+          {isLoading ? <Skeleton className="h-64 w-full rounded" /> :
+           sixMonths.length === 0 ? <EmptyChartState /> : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={sixMonths} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                <Bar dataKey="appointments" name="Consultas" fill={CHART_COLORS.primary} radius={[2, 2, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="new_patients" name="Novos Pac." fill={CHART_COLORS.success} radius={[2, 2, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="records" name="Prontuários" fill={CHART_COLORS.accent} radius={[2, 2, 0, 0]} maxBarSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* ── CHARTS ROW 2 ─────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Pie - Appointment Types */}
+        <div className="gov-card p-5">
+          <span className="gov-section-title block mb-4">Tipos de Consulta</span>
+          {isLoading ? <Skeleton className="h-56 w-full rounded" /> :
+           distribution.length === 0 ? <EmptyChartState message="Sem consultas no período" /> : (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={distribution}
+                    dataKey="count"
+                    nameKey="type"
+                    cx="50%" cy="50%"
+                    innerRadius={50} outerRadius={80}
+                    paddingAngle={2}
+                    label={({ pct }) => `${pct}%`}
+                    labelLine={false}
+                  >
+                    {distribution.map((_, index) => (
+                      <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: number, n: string) => [v, n]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-2 gap-1 mt-3">
+                {distribution.slice(0, 6).map((d, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                    <span className="h-2 w-2 rounded-full shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="truncate text-neutral-600">{d.type}</span>
+                    <span className="font-bold text-neutral-900 ml-auto">{d.count}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Horizontal Bar - Age Distribution */}
+        <div className="gov-card p-5">
+          <span className="gov-section-title block mb-4">Distribuição Etária</span>
+          {isLoading ? <Skeleton className="h-56 w-full rounded" /> :
+           !demographics?.by_age_group?.length ? <EmptyChartState message="Sem dados demográficos" /> : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={demographics.by_age_group} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 9, fill: '#9CA3AF' }} tickLine={false} />
+                <YAxis type="category" dataKey="group" tick={{ fontSize: 9, fill: '#6B7280' }} tickLine={false} width={55} />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="count" name="Pacientes" fill={CHART_COLORS.primary} radius={[0, 2, 2, 0]} label={{ position: 'right', fontSize: 9, fill: '#6B7280' }} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Gender Distribution */}
+        <div className="gov-card p-5">
+          <span className="gov-section-title block mb-4">Distribuição por Género</span>
+          {isLoading ? <Skeleton className="h-56 w-full rounded" /> :
+           !demographics?.by_gender?.length ? <EmptyChartState message="Sem dados de género" /> : (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={demographics.by_gender}
+                    dataKey="count"
+                    nameKey="gender"
+                    cx="50%" cy="50%"
+                    outerRadius={75}
+                    label={({ gender, count }) => `${gender === 'masculino' ? 'M' : gender === 'feminino' ? 'F' : 'O'}: ${count}`}
+                    labelLine={false}
+                  >
+                    {demographics.by_gender.map((_, index) => (
+                      <Cell key={index} fill={[CHART_COLORS.primary, CHART_COLORS.angola1, CHART_COLORS.neutral][index % 3]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: number, n: string) => [v, n === 'masculino' ? 'Masculino' : n === 'feminino' ? 'Feminino' : 'Outro']} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex justify-center gap-4 mt-2">
+                {demographics.by_gender.map((g, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                    <span className="h-2 w-2 rounded-full" style={{ background: [CHART_COLORS.primary, CHART_COLORS.angola1, CHART_COLORS.neutral][i % 3] }} />
+                    <span className="capitalize text-neutral-600">{g.gender}</span>
+                    <span className="font-bold">{g.count}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── TREND AREA CHART ─────────────────────── */}
+      <div className="gov-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <span className="gov-section-title">Tendência — Novos Pacientes vs Consultas</span>
+          <span className="text-[10px] text-neutral-400">Últimos 6 meses</span>
+        </div>
+        {isLoading ? <Skeleton className="h-48 w-full rounded" /> :
+         sixMonths.length === 0 ? <EmptyChartState /> : (
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={sixMonths} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+              <defs>
+                <linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.15} />
+                  <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradSuccess" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.1} />
+                  <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
+              <Tooltip content={<ChartTooltip />} />
+              <Area dataKey="appointments" name="Consultas" stroke={CHART_COLORS.primary} fill="url(#gradPrimary)" strokeWidth={2} dot={false} />
+              <Area dataKey="new_patients" name="Novos Pacientes" stroke={CHART_COLORS.success} fill="url(#gradSuccess)" strokeWidth={2} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* ── SUMMARY TABLE ────────────────────────── */}
+      <div className="gov-card overflow-hidden">
+        <div className="px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="gov-section-title">
+            Resumo Estatístico — {MONTH_NAMES[period.month]} {period.year}
+          </span>
+          <span className="text-[10px] text-neutral-400">
+            Unidade: {profile?.health_unit_name}
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="gov-table">
+            <thead>
+              <tr>
+                <th>Indicador</th>
+                <th className="text-right">Mês Actual</th>
+                <th className="text-right">Mês Anterior</th>
+                <th className="text-right">Variação</th>
+                <th className="text-center">Tendência</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td><Skeleton className="h-4 w-40" /></td>
+                    <td><Skeleton className="h-4 w-12 ml-auto" /></td>
+                    <td><Skeleton className="h-4 w-12 ml-auto" /></td>
+                    <td><Skeleton className="h-4 w-12 ml-auto" /></td>
+                    <td><Skeleton className="h-4 w-6 mx-auto" /></td>
+                  </tr>
+                ))
+              ) : (
+                summaryRows.map((row, i) => {
+                  const trend = row.previous && row.previous > 0 && row.current
+                    ? ((row.current - row.previous) / row.previous) * 100
+                    : null
+                  return (
+                    <tr key={i}>
+                      <td className="font-medium">{row.label}</td>
+                      <td className="text-right font-bold">
+                        {row.current?.toLocaleString('pt-AO') ?? '—'}{'suffix' in row ? (row as any).suffix ?? '' : ''}
+                      </td>
+                      <td className="text-right text-neutral-400">
+                        {row.previous?.toLocaleString('pt-AO') ?? '—'}
+                      </td>
+                      <td className={`text-right text-xs font-medium ${
+                        trend === null ? 'text-neutral-300'
+                        : trend > 0 ? 'text-green-600'
+                        : trend < 0 ? 'text-red-600'
+                        : 'text-neutral-400'
+                      }`}>
+                        {trend !== null ? `${trend > 0 ? '+' : ''}${trend.toFixed(1)}%` : '—'}
+                      </td>
+                      <td className="text-center">
+                        {trend === null ? <Minus className="h-3 w-3 text-neutral-300 mx-auto" />
+                        : trend > 0 ? <TrendingUp className="h-3 w-3 text-green-500 mx-auto" />
+                        : trend < 0 ? <TrendingDown className="h-3 w-3 text-red-500 mx-auto" />
+                        : <Minus className="h-3 w-3 text-neutral-400 mx-auto" />}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="px-5 py-3 bg-neutral-50 border-t flex flex-col sm:flex-row items-center justify-between gap-1">
+          <span className="text-[10px] text-neutral-400">
+            Dados gerados em {new Date().toLocaleString('pt-AO')}
+          </span>
+          <span className="text-[10px] text-neutral-400">
+            MediConnect · República de Angola · MINSA
+          </span>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
