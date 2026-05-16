@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Save, Printer, Send, Download } from "lucide-react";
+import { FileText, Save, Printer, Send, Shield, Info } from "lucide-react";
 import { toast } from "sonner";
 import { exportBulletinPdf } from "@/utils/exportBulletinPdf";
+import { ExportButton } from "@/components/ExportButton";
 
 const ageGroups = [
   "RN",
@@ -97,31 +97,30 @@ export default function EpidemiologicalBulletin() {
     ageGroups.reduce((sum, ag) => sum + (parseInt(formData[cellKey(disease, sub, type, ag)] || "0") || 0), 0);
 
   const handleSave = () => {
-    toast.success(`Boletim Nº ${bulletinNumber || "—"} guardado localmente.`);
+    toast.success(`Boletim Nº ${bulletinNumber || "—"} guardado no sistema localmente.`);
   };
 
   const handleSubmit = () => {
     if (!healthUnit || !month || !year) {
-      toast.warning("Preencha a unidade sanitária, mês e ano para submeter.");
+      toast.warning("Preencha a unidade sanitária, mês e ano para submeter ao nível central.");
       return;
     }
-    toast.success("Boletim de Notificação Epidemiológica enviado à Direcção Municipal.");
+    toast.success("Boletim de Notificação Epidemiológica enviado à Direcção Municipal com sucesso.");
   };
 
   const handleExport = async (format: 'pdf' | 'csv' = 'pdf') => {
     if (!healthUnit.trim()) {
-      toast.warning("Preencha o nome da unidade sanitária");
+      toast.warning("Preencha o nome da unidade sanitária no cabeçalho.");
       return;
     }
     if (!month) {
-      toast.warning("Seleccione o mês de referência");
+      toast.warning("Seleccione o mês de referência para a exportação.");
       return;
     }
 
-    const toastId = toast.loading(`A gerar boletim (${format.toUpperCase()})...`);
+    const toastId = toast.loading(`A gerar documento oficial (${format.toUpperCase()})...`);
 
     try {
-      // Simulate small delay for UX
       await new Promise(resolve => setTimeout(resolve, 500));
 
       if (format === 'pdf') {
@@ -141,12 +140,11 @@ export default function EpidemiologicalBulletin() {
         });
 
         if (success) {
-          toast.success("Boletim PDF exportado com sucesso", { id: toastId });
+          toast.success("Boletim PDF oficial exportado com sucesso", { id: toastId });
         } else {
-          toast.error("Erro ao gerar o PDF do boletim", { id: toastId });
+          toast.error("Ocorreu um erro ao gerar o PDF do boletim", { id: toastId });
         }
       } else {
-        // Export CSV
         const { exportToCSV } = await import("@/lib/exportUtils");
         
         const csvData: any[] = [];
@@ -178,8 +176,8 @@ export default function EpidemiologicalBulletin() {
         const success = exportToCSV({
           filename: `boletim_epidemiologico_${month}_${year}`,
           columns: [
-            { header: "Doenca", key: "doenca" },
-            { header: "Tipo", key: "tipo" },
+            { header: "Doença", key: "doenca" },
+            { header: "Tipo de Confirmação", key: "tipo" },
             ...ageGroups.map(ag => ({ header: `Casos ${ag}`, key: `casos_${ag}` })),
             { header: "Total", key: "total_casos" }
           ],
@@ -187,164 +185,176 @@ export default function EpidemiologicalBulletin() {
         });
 
         if (success) {
-          toast.success("Boletim CSV exportado com sucesso", { id: toastId });
+          toast.success("Dados estatísticos CSV exportados com sucesso", { id: toastId });
         } else {
-          toast.error("Erro ao gerar o CSV", { id: toastId });
+          toast.error("Erro ao processar dados CSV", { id: toastId });
         }
       }
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Ocorreu um erro inesperado ao exportar", { id: toastId });
+      toast.error("Ocorreu um erro inesperado ao exportar o documento", { id: toastId });
     }
   };
 
   const renderDiseaseTable = (diseases: DiseaseRow[], includeDeaths: boolean) => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
+    <div className="overflow-x-auto w-full">
+      <table className="gov-table w-full text-xs">
         <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="text-left px-2 py-2 font-semibold text-muted-foreground min-w-[220px] sticky left-0 bg-muted/50 z-10">
+          <tr>
+            <th className="text-left px-3 py-3 font-bold text-neutral-700 min-w-[280px] sticky left-0 bg-neutral-100/90 backdrop-blur-sm z-10 border-r border-neutral-200 uppercase tracking-wider text-[11px]">
               Doenças ou Eventos
             </th>
-            <th className="px-1 py-2 font-semibold text-muted-foreground text-center" colSpan={ageGroups.length}>
-              Casos
+            <th className="px-2 py-3 font-bold text-neutral-700 text-center uppercase tracking-wider text-[11px]" colSpan={ageGroups.length}>
+              Casos Registados por Idade
             </th>
-            <th className="px-2 py-2 font-semibold text-muted-foreground text-center border-l">Total</th>
+            <th className="px-3 py-3 font-bold text-neutral-700 text-center border-l border-neutral-200 bg-neutral-50 uppercase tracking-wider text-[11px]">
+              Total
+            </th>
             {includeDeaths && (
               <>
-                <th className="px-1 py-2 font-semibold text-muted-foreground text-center border-l" colSpan={ageGroups.length}>
-                  Óbitos
+                <th className="px-2 py-3 font-bold text-neutral-700 text-center border-l border-neutral-200 uppercase tracking-wider text-[11px]" colSpan={ageGroups.length}>
+                  Óbitos Associados
                 </th>
-                <th className="px-2 py-2 font-semibold text-muted-foreground text-center border-l">Total</th>
+                <th className="px-3 py-3 font-bold text-neutral-700 text-center border-l border-neutral-200 bg-neutral-50 uppercase tracking-wider text-[11px]">
+                  Total
+                </th>
               </>
             )}
           </tr>
-          <tr className="border-b bg-muted/30">
-            <th className="sticky left-0 bg-muted/30 z-10" />
+          <tr className="bg-neutral-50 border-b border-neutral-200">
+            <th className="sticky left-0 bg-neutral-50 z-10 border-r border-neutral-200" />
             {ageGroups.map((ag) => (
-              <th key={`cases-${ag}`} className="px-1 py-1.5 text-[10px] font-medium text-muted-foreground text-center min-w-[52px]">
+              <th key={`cases-${ag}`} className="px-1.5 py-2 text-[10px] font-bold text-neutral-600 text-center min-w-[56px] border-l border-neutral-200/50 first:border-l-0">
                 {ag}
               </th>
             ))}
-            <th className="border-l min-w-[52px]" />
+            <th className="border-l border-neutral-200 min-w-[64px]" />
             {includeDeaths && (
               <>
                 {ageGroups.map((ag) => (
-                  <th key={`deaths-${ag}`} className="px-1 py-1.5 text-[10px] font-medium text-muted-foreground text-center border-l-0 min-w-[52px]">
+                  <th key={`deaths-${ag}`} className="px-1.5 py-2 text-[10px] font-bold text-[#DC2626] text-center border-l border-neutral-200/50 min-w-[56px]">
                     {ag}
                   </th>
                 ))}
-                <th className="border-l min-w-[52px]" />
+                <th className="border-l border-neutral-200 min-w-[64px]" />
               </>
             )}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-neutral-200">
           {diseases.map((disease) => {
             if (disease.hasConfirmation && disease.subLabel) {
               return (
-                <>
+                <React.Fragment key={disease.name}>
                   {/* Com confirmação */}
-                  <tr key={`${disease.name}-com`} className="border-b hover:bg-muted/20 transition-colors">
-                    <td className="px-2 py-1.5 sticky left-0 bg-card z-10">
-                      <div className="font-medium">{disease.name}</div>
-                      <div className="text-[10px] text-muted-foreground">{disease.subLabel.com}</div>
+                  <tr className="hover:bg-neutral-50 transition-colors">
+                    <td className="px-3 py-2 sticky left-0 bg-white group-hover:bg-neutral-50 z-10 border-r border-neutral-200">
+                      <div className="font-bold text-neutral-900">{disease.name}</div>
+                      <div className="text-[10px] text-[#0A5C75] font-medium mt-0.5 flex items-center gap-1">
+                        <div className="h-1 w-1 rounded-full bg-[#0A5C75]" />
+                        {disease.subLabel.com}
+                      </div>
                     </td>
                     {ageGroups.map((ag) => (
-                      <td key={ag} className="px-0.5 py-1">
+                      <td key={ag} className="px-1 py-1.5">
                         <Input
-                          className="h-7 w-12 text-center text-xs px-1 border-muted"
+                          className="h-8 w-full min-w-[48px] text-center text-xs px-1 border-neutral-300 focus-visible:ring-[#0A5C75] rounded-sm bg-white"
                           value={formData[cellKey(disease.name, "com", "cases", ag)] || ""}
                           onChange={(e) => handleCellChange(cellKey(disease.name, "com", "cases", ag), e.target.value)}
                         />
                       </td>
                     ))}
-                    <td className="px-2 py-1 text-center font-semibold text-sm border-l">
-                      {getRowTotal(disease.name, "com", "cases") || ""}
+                    <td className="px-3 py-2 text-center font-bold text-base text-neutral-900 border-l border-neutral-200 bg-neutral-50/50">
+                      {getRowTotal(disease.name, "com", "cases") || "0"}
                     </td>
                     {includeDeaths && (
                       <>
                         {ageGroups.map((ag) => (
-                          <td key={`d-${ag}`} className="px-0.5 py-1">
+                          <td key={`d-${ag}`} className="px-1 py-1.5 border-l border-neutral-200/50 first:border-l-neutral-200">
                             <Input
-                              className="h-7 w-12 text-center text-xs px-1 border-muted"
+                              className="h-8 w-full min-w-[48px] text-center text-xs px-1 border-[#DC2626]/20 focus-visible:ring-[#DC2626] rounded-sm bg-white hover:border-[#DC2626]/50"
                               value={formData[cellKey(disease.name, "com", "deaths", ag)] || ""}
                               onChange={(e) => handleCellChange(cellKey(disease.name, "com", "deaths", ag), e.target.value)}
                             />
                           </td>
                         ))}
-                        <td className="px-2 py-1 text-center font-semibold text-sm border-l">
-                          {getRowTotal(disease.name, "com", "deaths") || ""}
+                        <td className="px-3 py-2 text-center font-bold text-base text-[#DC2626] border-l border-neutral-200 bg-[#DC2626]/5">
+                          {getRowTotal(disease.name, "com", "deaths") || "0"}
                         </td>
                       </>
                     )}
                   </tr>
                   {/* Sem confirmação */}
-                  <tr key={`${disease.name}-sem`} className="border-b hover:bg-muted/20 transition-colors">
-                    <td className="px-2 py-1.5 sticky left-0 bg-card z-10">
-                      <div className="text-[10px] text-muted-foreground pl-3">{disease.subLabel.sem}</div>
+                  <tr className="hover:bg-neutral-50 transition-colors bg-neutral-50/30">
+                    <td className="px-3 py-2 sticky left-0 bg-neutral-50/80 group-hover:bg-neutral-100 z-10 border-r border-neutral-200">
+                      <div className="text-[10px] text-neutral-500 font-medium pl-3 flex items-center gap-1">
+                        <div className="h-1 w-1 rounded-full bg-neutral-400" />
+                        {disease.subLabel.sem}
+                      </div>
                     </td>
                     {ageGroups.map((ag) => (
-                      <td key={ag} className="px-0.5 py-1">
+                      <td key={ag} className="px-1 py-1.5">
                         <Input
-                          className="h-7 w-12 text-center text-xs px-1 border-muted"
+                          className="h-8 w-full min-w-[48px] text-center text-xs px-1 border-neutral-300 focus-visible:ring-[#0A5C75] rounded-sm bg-white"
                           value={formData[cellKey(disease.name, "sem", "cases", ag)] || ""}
                           onChange={(e) => handleCellChange(cellKey(disease.name, "sem", "cases", ag), e.target.value)}
                         />
                       </td>
                     ))}
-                    <td className="px-2 py-1 text-center font-semibold text-sm border-l">
-                      {getRowTotal(disease.name, "sem", "cases") || ""}
+                    <td className="px-3 py-2 text-center font-bold text-base text-neutral-600 border-l border-neutral-200 bg-neutral-100/50">
+                      {getRowTotal(disease.name, "sem", "cases") || "0"}
                     </td>
                     {includeDeaths && (
                       <>
                         {ageGroups.map((ag) => (
-                          <td key={`d-${ag}`} className="px-0.5 py-1">
+                          <td key={`d-${ag}`} className="px-1 py-1.5 border-l border-neutral-200/50 first:border-l-neutral-200">
                             <Input
-                              className="h-7 w-12 text-center text-xs px-1 border-muted"
+                              className="h-8 w-full min-w-[48px] text-center text-xs px-1 border-[#DC2626]/20 focus-visible:ring-[#DC2626] rounded-sm bg-white hover:border-[#DC2626]/50"
                               value={formData[cellKey(disease.name, "sem", "deaths", ag)] || ""}
                               onChange={(e) => handleCellChange(cellKey(disease.name, "sem", "deaths", ag), e.target.value)}
                             />
                           </td>
                         ))}
-                        <td className="px-2 py-1 text-center font-semibold text-sm border-l">
-                          {getRowTotal(disease.name, "sem", "deaths") || ""}
+                        <td className="px-3 py-2 text-center font-bold text-base text-[#DC2626]/70 border-l border-neutral-200 bg-[#DC2626]/5">
+                          {getRowTotal(disease.name, "sem", "deaths") || "0"}
                         </td>
                       </>
                     )}
                   </tr>
-                </>
+                </React.Fragment>
               );
             }
 
             return (
-              <tr key={disease.name} className="border-b hover:bg-muted/20 transition-colors">
-                <td className="px-2 py-1.5 font-medium sticky left-0 bg-card z-10">{disease.name}</td>
+              <tr key={disease.name} className="hover:bg-neutral-50 transition-colors">
+                <td className="px-3 py-3 font-bold text-neutral-900 sticky left-0 bg-white group-hover:bg-neutral-50 z-10 border-r border-neutral-200">
+                  {disease.name}
+                </td>
                 {ageGroups.map((ag) => (
-                  <td key={ag} className="px-0.5 py-1">
+                  <td key={ag} className="px-1 py-1.5">
                     <Input
-                      className="h-7 w-12 text-center text-xs px-1 border-muted"
+                      className="h-8 w-full min-w-[48px] text-center text-xs px-1 border-neutral-300 focus-visible:ring-[#0A5C75] rounded-sm bg-white"
                       value={formData[cellKey(disease.name, "main", "cases", ag)] || ""}
                       onChange={(e) => handleCellChange(cellKey(disease.name, "main", "cases", ag), e.target.value)}
                     />
                   </td>
                 ))}
-                <td className="px-2 py-1 text-center font-semibold text-sm border-l">
-                  {getRowTotal(disease.name, "main", "cases") || ""}
+                <td className="px-3 py-2 text-center font-bold text-base text-neutral-900 border-l border-neutral-200 bg-neutral-50/50">
+                  {getRowTotal(disease.name, "main", "cases") || "0"}
                 </td>
                 {includeDeaths && (
                   <>
                     {ageGroups.map((ag) => (
-                      <td key={`d-${ag}`} className="px-0.5 py-1">
+                      <td key={`d-${ag}`} className="px-1 py-1.5 border-l border-neutral-200/50 first:border-l-neutral-200">
                         <Input
-                          className="h-7 w-12 text-center text-xs px-1 border-muted"
+                          className="h-8 w-full min-w-[48px] text-center text-xs px-1 border-[#DC2626]/20 focus-visible:ring-[#DC2626] rounded-sm bg-white hover:border-[#DC2626]/50"
                           value={formData[cellKey(disease.name, "main", "deaths", ag)] || ""}
                           onChange={(e) => handleCellChange(cellKey(disease.name, "main", "deaths", ag), e.target.value)}
                         />
                       </td>
                     ))}
-                    <td className="px-2 py-1 text-center font-semibold text-sm border-l">
-                      {getRowTotal(disease.name, "main", "deaths") || ""}
+                    <td className="px-3 py-2 text-center font-bold text-base text-[#DC2626] border-l border-neutral-200 bg-[#DC2626]/5">
+                      {getRowTotal(disease.name, "main", "deaths") || "0"}
                     </td>
                   </>
                 )}
@@ -357,122 +367,158 @@ export default function EpidemiologicalBulletin() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="page-header">
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="page-title flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Boletim de Notificação Epidemiológica Mensal
-          </h1>
-          <p className="page-subtitle">
-            República de Angola — Ministério da Saúde — Direcção Nacional de Saúde Pública
+          <div className="flex items-center gap-2 mb-2">
+            <span className="gov-badge-oficial">
+              <Shield className="h-2.5 w-2.5" />
+              Documento Oficial
+            </span>
+            <span className="text-xs font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded border border-neutral-200">
+              MINSA - DNSP
+            </span>
+          </div>
+          <h1 className="text-xl font-bold text-neutral-900 tracking-tight">Boletim de Notificação Epidemiológica</h1>
+          <p className="text-sm text-neutral-500 mt-1 max-w-2xl">
+            Registo mensal obrigatório de doenças e eventos de saúde para a Direcção Nacional de Saúde Pública.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Select onValueChange={(val) => handleExport(val as any)}>
-            <SelectTrigger className="w-[140px] h-9">
-              <Download className="h-4 w-4 mr-1" />
-              <SelectValue placeholder="Exportar" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pdf">PDF para Impressão</SelectItem>
-              <SelectItem value="csv">CSV para Excel</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-1" /> Imprimir
+        <div className="flex flex-wrap gap-2">
+          <ExportButton 
+            onExport={(format) => handleExport(format as any)}
+            formats={['pdf', 'csv']}
+            className="border-neutral-300 text-neutral-700 hover:bg-neutral-50 h-10 font-bold"
+          />
+          <Button variant="outline" className="h-10 font-bold border-neutral-300 text-neutral-700 hover:bg-neutral-50" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" /> Imprimir
           </Button>
-          <Button variant="outline" size="sm" onClick={handleSave}>
-            <Save className="h-4 w-4 mr-1" /> Guardar
+          <Button variant="outline" className="h-10 font-bold border-[#0A5C75]/30 text-[#0A5C75] hover:bg-[#0A5C75]/10" onClick={handleSave}>
+            <Save className="h-4 w-4 mr-2" /> Guardar Rascunho
           </Button>
-          <Button size="sm" onClick={handleSubmit}>
-            <Send className="h-4 w-4 mr-1" /> Enviar
+          <Button className="h-10 font-bold bg-[#0A5C75] hover:bg-[#0A5C75]/90 text-white shadow-sm" onClick={handleSubmit}>
+            <Send className="h-4 w-4 mr-2" /> Submeter Boletim
           </Button>
         </div>
       </div>
 
-      {/* Identification */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Identificação</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Boletim Mensal Nº</Label>
-              <Input value={bulletinNumber} onChange={(e) => setBulletinNumber(e.target.value)} placeholder="Nº" />
+      <div className="gov-alert gov-alert-info mb-6">
+        <div className="flex gap-3">
+          <Info className="h-5 w-5 text-[#0A5C75] shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-[#0A5C75]">Instruções de Preenchimento</p>
+            <p className="text-xs text-[#0A5C75]/80">
+              Preencha o cabeçalho completo. Os campos não preenchidos assumem o valor zero (0). Ao concluir, o boletim deve ser enviado electronicamente para as autoridades competentes.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="gov-card">
+        <div className="px-5 py-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/50">
+          <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Cabeçalho de Identificação</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Nº do Boletim</Label>
+              <Input 
+                value={bulletinNumber} 
+                onChange={(e) => setBulletinNumber(e.target.value)} 
+                placeholder="Ex: 001/2025" 
+                className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm font-mono"
+              />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Unidade Sanitária</Label>
-              <Input value={healthUnit} onChange={(e) => setHealthUnit(e.target.value)} placeholder="Nome da unidade" />
+            <div className="space-y-2 lg:col-span-1">
+              <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Unidade Sanitária *</Label>
+              <Input 
+                value={healthUnit} 
+                onChange={(e) => setHealthUnit(e.target.value)} 
+                placeholder="Nome completo da unidade" 
+                className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm"
+              />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mês</Label>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Mês de Referência *</Label>
               <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar mês" /></SelectTrigger>
+                <SelectTrigger className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm">
+                  <SelectValue placeholder="Seleccionar" />
+                </SelectTrigger>
                 <SelectContent>
                   {months.map((m, i) => (
-                    <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                    <SelectItem key={m} value={String(i + 1)} className="font-medium">{m}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Ano</Label>
-              <Input value={year} onChange={(e) => setYear(e.target.value)} placeholder="20__" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Ano Clínico *</Label>
+              <Input 
+                value={year} 
+                onChange={(e) => setYear(e.target.value)} 
+                placeholder="2025" 
+                className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm font-mono"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Page 1 - Cases + Deaths (Total + Óbitos columns) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Doenças de Notificação Obrigatória — Parte 1</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 md:p-2">
+      <div className="gov-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-neutral-200 bg-[#0A5C75] text-white flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider">Notificação Obrigatória — Quadro de Registo 1</h2>
+        </div>
+        <div className="bg-white">
           {renderDiseaseTable(diseasesPage1, false)}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Page 2 - Cases + Deaths */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Doenças de Notificação Obrigatória — Parte 2</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 md:p-2">
+      <div className="gov-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-neutral-200 bg-[#0A5C75] text-white flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider">Notificação Obrigatória — Quadro de Registo 2</h2>
+        </div>
+        <div className="bg-white">
           {renderDiseaseTable(diseasesPage2, true)}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Footer info */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Informante e Observações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nome do Informante</Label>
-              <Input value={informantName} onChange={(e) => setInformantName(e.target.value)} placeholder="Nome completo" />
+      <div className="gov-card">
+        <div className="px-5 py-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/50">
+          <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Autoria e Observações Adicionais</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Nome do Informante / Responsável</Label>
+              <Input 
+                value={informantName} 
+                onChange={(e) => setInformantName(e.target.value)} 
+                placeholder="Nome completo do profissional" 
+                className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm"
+              />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Categoria</Label>
-              <Input value={informantCategory} onChange={(e) => setInformantCategory(e.target.value)} placeholder="Ex: Médico, Enfermeiro" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Categoria Profissional</Label>
+              <Input 
+                value={informantCategory} 
+                onChange={(e) => setInformantCategory(e.target.value)} 
+                placeholder="Ex: Director Clínico, Gestor Hospitalar" 
+                className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm"
+              />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Observações</Label>
+          <div className="space-y-2">
+            <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Observações / Notas Relevantes</Label>
             <Textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              placeholder="Observações adicionais..."
-              rows={3}
+              placeholder="Preencha com detalhes sobre surtos, anomalias ou necessidades de intervenção..."
+              rows={4}
+              className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm rounded-sm resize-none"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

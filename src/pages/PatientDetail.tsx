@@ -13,10 +13,10 @@ import {
   Phone,
   User,
   HeartPulse,
-  Activity
+  Activity,
+  Droplet
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -37,8 +37,8 @@ import {
 import { usePatientDetail } from '@/hooks/usePatientDetail'
 import { usePatientMutations } from '@/hooks/usePatientMutations'
 import { useMedicalRecords } from '@/hooks/useMedicalRecords'
-import { PatientStatusBadge } from '@/components/patients/PatientStatusBadge'
 import { PatientForm } from '@/components/patients/PatientForm'
+import { ExportButton } from '@/components/ExportButton'
 import { formatDate } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 
@@ -93,16 +93,17 @@ export default function PatientDetail() {
     return (
       <div className="space-y-8 animate-pulse">
         <div className="flex flex-col gap-2">
-          <div className="h-10 w-64 bg-muted rounded" />
+          <div className="h-10 w-64 bg-neutral-200 rounded" />
           <div className="flex gap-2">
-            <div className="h-6 w-20 bg-muted rounded" />
-            <div className="h-6 w-20 bg-muted rounded" />
+            <div className="h-6 w-20 bg-neutral-200 rounded" />
+            <div className="h-6 w-20 bg-neutral-200 rounded" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="h-32 bg-muted rounded" />
-          <div className="h-32 bg-muted rounded" />
-          <div className="h-32 bg-muted rounded" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="h-24 bg-neutral-200 rounded" />
+          <div className="h-24 bg-neutral-200 rounded" />
+          <div className="h-24 bg-neutral-200 rounded" />
+          <div className="h-24 bg-neutral-200 rounded" />
         </div>
       </div>
     )
@@ -111,12 +112,12 @@ export default function PatientDetail() {
   if (error || !patient) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center text-center">
-        <AlertTriangle className="h-16 w-16 text-destructive/20 mb-4" />
-        <h2 className="text-2xl font-bold">Paciente não encontrado</h2>
-        <p className="text-muted-foreground mt-2 max-w-sm">
-          O registro solicitado não foi encontrado ou está inacessível no momento.
+        <AlertTriangle className="h-16 w-16 text-[#DC2626]/40 mb-4" />
+        <h2 className="text-2xl font-bold text-neutral-900">Paciente não encontrado</h2>
+        <p className="text-neutral-500 mt-2 max-w-sm">
+          O registo solicitado não foi encontrado ou está inacessível no momento.
         </p>
-        <Button className="mt-8" onClick={() => navigate('/pacientes')}>
+        <Button className="mt-8 bg-[#0A5C75] text-white hover:bg-[#0E7490]" onClick={() => navigate('/pacientes')}>
           Voltar à Lista de Pacientes
         </Button>
       </div>
@@ -126,20 +127,61 @@ export default function PatientDetail() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/pacientes')} className="-ml-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl md:text-2xl font-bold truncate">{patient.full_name}</h1>
-              <PatientStatusBadge isActive={patient.is_active} />
-            </div>
-            <p className="text-[10px] md:text-sm font-mono text-muted-foreground">{patient.patient_code}</p>
+        <div className="flex items-center gap-4 flex-wrap w-full sm:w-auto">
+          <button 
+            onClick={() => navigate('/pacientes')} 
+            className="flex items-center gap-1.5 text-sm text-neutral-600 hover:text-[#0A5C75] transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="font-medium hidden sm:inline">Voltar ao Registo</span>
+            <span className="font-medium sm:hidden">Voltar</span>
+          </button>
+          
+          <div className="hidden sm:block h-4 w-px bg-neutral-300"></div>
+          
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-neutral-900 tracking-tight leading-none">{patient.full_name}</h1>
+            <span className="font-mono text-sm text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded leading-none">
+              {patient.patient_code}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "gov-status",
+              patient.is_active ? "gov-status-active" : "gov-status-inactive"
+            )}>
+              {patient.is_active ? 'Activo' : 'Inactivo'}
+            </span>
+            {patient.blood_type && (
+              <span className="gov-status bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                <Droplet className="h-3 w-3" />
+                {patient.blood_type}
+              </span>
+            )}
           </div>
         </div>
+
         <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-end">
-          <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none" onClick={() => setShowEditDialog(true)}>
+          <ExportButton 
+            variant="outline" 
+            size="sm" 
+            className="flex-1 sm:flex-none h-9 border-neutral-300 text-neutral-700 hover:bg-neutral-50" 
+            label="Exportar Prontuário"
+            options={{
+              filename: `prontuario_${patient.patient_code}`,
+              data: records.map(r => ({
+                Data: formatDate(r.occurred_at),
+                Tipo: r.record_type,
+                Título: r.title,
+                Profissional: r.user_profiles?.full_name || 'N/A',
+                Descrição: r.description || 'N/A'
+              })),
+              title: `Prontuário Clínico: ${patient.full_name}`,
+              subtitle: `Código: ${patient.patient_code} | BI: ${patient.national_id || 'N/A'} | Idade: ${calcAge(patient.date_of_birth)} anos | Género: ${patient.gender}`
+            }}
+          />
+          <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none h-9 border-neutral-300 text-neutral-700 hover:bg-neutral-50" onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4" /> <span className="text-xs">Editar</span>
           </Button>
           {patient.is_active && (
@@ -147,7 +189,7 @@ export default function PatientDetail() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5"
+                className="gap-2 text-[#DC2626] border-[#DC2626]/30 hover:bg-[#DC2626]/5"
                 onClick={() => setShowDeactivateDialog(true)}
                 disabled={isDeactivating}
               >
@@ -161,7 +203,7 @@ export default function PatientDetail() {
               >
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Desactivar paciente</AlertDialogTitle>
+                    <AlertDialogTitle className="text-[#DC2626]">Desactivar paciente</AlertDialogTitle>
                     <AlertDialogDescription>
                       Tem a certeza que pretende desactivar{' '}
                       <strong>{patient.full_name}</strong>?
@@ -171,13 +213,13 @@ export default function PatientDetail() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeactivating}>
+                    <AlertDialogCancel disabled={isDeactivating} className="border-neutral-300 text-neutral-700">
                       Cancelar
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDeactivate}
                       disabled={isDeactivating}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-[#DC2626] text-white hover:bg-[#DC2626]/90"
                     >
                       {isDeactivating ? 'A desactivar...' : 'Confirmar desactivação'}
                     </AlertDialogAction>
@@ -190,9 +232,9 @@ export default function PatientDetail() {
       </div>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 w-[95vw] rounded-lg">
-          <DialogHeader>
-            <DialogTitle>Editar Prontuário</DialogTitle>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 w-[95vw] rounded">
+          <DialogHeader className="border-b pb-4 mb-4 border-neutral-200">
+            <DialogTitle className="text-xl font-bold text-[#0A5C75]">Editar Prontuário</DialogTitle>
           </DialogHeader>
           <PatientForm
             initialData={patient}
@@ -203,185 +245,220 @@ export default function PatientDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <Card className="hover:shadow-sm transition-shadow">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-primary/10 p-2.5 rounded-full shrink-0"><User className="h-5 w-5 text-primary" /></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="gov-stat-card rounded-sm !border-l-[#0A5C75]">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#0A5C75]/10 p-2.5 rounded shrink-0"><User className="h-5 w-5 text-[#0A5C75]" /></div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Idade / Género</p>
-              <p className="font-bold text-sm md:text-base truncate">{calcAge(patient.date_of_birth)} anos • {patient.gender}</p>
+              <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Idade / Género</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{calcAge(patient.date_of_birth)} anos • {patient.gender}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-blue-500/10 p-3 rounded-full"><Phone className="h-5 w-5 text-blue-500" /></div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Contacto</p>
-              <p className="font-bold">{patient.phone || 'N/A'}</p>
+          </div>
+        </div>
+        <div className="gov-stat-card rounded-sm !border-l-[#0891B2]">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#0891B2]/10 p-2.5 rounded shrink-0"><Phone className="h-5 w-5 text-[#0891B2]" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Contacto</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{patient.phone || 'N/A'}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-amber-500/10 p-3 rounded-full"><MapPin className="h-5 w-5 text-amber-500" /></div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Localização</p>
-              <p className="font-bold">{patient.municipality}, {patient.province}</p>
+          </div>
+        </div>
+        <div className="gov-stat-card rounded-sm !border-l-[#D97706]">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#D97706]/10 p-2.5 rounded shrink-0"><MapPin className="h-5 w-5 text-[#D97706]" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Localização</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{patient.municipality}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-rose-500/10 p-3 rounded-full"><HeartPulse className="h-5 w-5 text-rose-500" /></div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Sangue / BI</p>
-              <p className="font-bold">{patient.blood_type || 'Desconhecido'} • {patient.national_id || 'N/A'}</p>
+          </div>
+        </div>
+        <div className="gov-stat-card rounded-sm !border-l-[#059669]">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#059669]/10 p-2.5 rounded shrink-0"><Activity className="h-5 w-5 text-[#059669]" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Identificação Nacional</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{patient.national_id || 'N/A'}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Tabs defaultValue="history">
-            <div className="overflow-x-auto">
-              <TabsList className="bg-muted/50 p-1 w-full sm:w-auto">
-                <TabsTrigger value="history" className="gap-2"><Calendar className="h-4 w-4" /> Prontuário</TabsTrigger>
-                <TabsTrigger value="clinical">Clínico</TabsTrigger>
-                <TabsTrigger value="contacts">Contactos</TabsTrigger>
+            <div className="border-b-2 border-[#E5E7EB] overflow-x-auto">
+              <TabsList className="bg-transparent p-0 w-full justify-start h-10 space-x-6">
+                <TabsTrigger 
+                  value="history" 
+                  className="gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#0A5C75] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#0A5C75] text-neutral-500 px-1 py-2 uppercase tracking-wide text-xs font-bold"
+                >
+                  <Calendar className="h-4 w-4" /> Prontuário Clínico
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="clinical"
+                  className="gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#0A5C75] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#0A5C75] text-neutral-500 px-1 py-2 uppercase tracking-wide text-xs font-bold"
+                >
+                  <HeartPulse className="h-4 w-4" /> Ficha Clínica
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="contacts"
+                  className="gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#0A5C75] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#0A5C75] text-neutral-500 px-1 py-2 uppercase tracking-wide text-xs font-bold"
+                >
+                  <Phone className="h-4 w-4" /> Contactos
+                </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="history" className="mt-4 space-y-4">
-              <div className="relative pl-5 sm:pl-6 border-l-2 border-muted space-y-6 sm:space-y-8 py-4">
+            <TabsContent value="history" className="mt-6 space-y-4">
+              <div className="relative pl-5 sm:pl-8 border-l-2 border-[#E5E7EB] space-y-6 py-2">
                 {isLoadingRecords ? (
                   <div className="space-y-4">
-                    {[1, 2].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}
+                    {[1, 2].map(i => <div key={i} className="h-24 bg-neutral-100 animate-pulse rounded" />)}
                   </div>
                 ) : records.length > 0 ? (
                   records.map((item, idx) => {
                     const Icon = getRecordIcon(item.record_type)
                     return (
                       <div key={item.id} className="relative">
-                        <div className="absolute -left-[35px] top-0 bg-background p-1 border-2 border-muted rounded-full">
-                          <Icon className="h-4 w-4 text-primary" />
+                        <div className="absolute -left-[30px] sm:-left-[42px] top-1 bg-[#0A5C75] text-white p-1.5 rounded-full z-10 shadow-sm">
+                          <Icon className="h-4 w-4" />
                         </div>
-                        <Card>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
+                        <div className="gov-card shadow-sm hover:shadow-md transition-shadow">
+                          <div className="p-4 sm:p-5">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2 sm:gap-0">
                               <div>
-                                <h4 className="font-bold text-sm">{item.title}</h4>
-                                <p className="text-xs text-primary font-medium">
-                                  {item.user_profiles?.full_name || 'Profissional'}
+                                <h4 className="font-bold text-sm text-neutral-900">{item.title}</h4>
+                                <p className="text-xs text-[#0A5C75] font-medium mt-0.5">
+                                  {item.user_profiles?.full_name || 'Profissional MINSA'}
                                 </p>
                               </div>
-                              <span className="text-[10px] font-bold text-muted-foreground">
+                              <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-1 rounded">
                                 {formatDate(item.occurred_at)}
                               </span>
                             </div>
                             {item.description && (
-                              <p className="text-xs text-muted-foreground italic">"{item.description}"</p>
+                              <p className="text-sm text-neutral-600 mt-3 bg-neutral-50 p-3 rounded border border-neutral-100">
+                                {item.description}
+                              </p>
                             )}
-                          </CardContent>
-                        </Card>
+                          </div>
+                        </div>
                       </div>
                     )
                   })
                 ) : (
-                  <div className="p-8 bg-muted/20 border border-dashed rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Nenhum registro clínico encontrado para este paciente.
+                  <div className="p-8 border border-dashed border-neutral-300 rounded bg-neutral-50 text-center ml-4">
+                    <p className="text-sm text-neutral-500">
+                      Nenhum registo clínico encontrado para este paciente.
                     </p>
                   </div>
                 )}
               </div>
             </TabsContent>
 
-            <TabsContent value="clinical" className="mt-4 space-y-6">
-              <Card>
-                <CardContent className="p-6 space-y-6">
-                  <div>
-                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3"><HeartPulse className="h-4 w-4 text-rose-500" /> Alergias Conhecidas</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {patient.allergies.length > 0 ? (
-                        patient.allergies.map(a => <span key={a} className="px-3 py-1 bg-rose-500/10 text-rose-600 rounded-full text-xs font-bold">{a}</span>)
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">Nenhuma alergia registada.</p>
-                      )}
-                    </div>
+            <TabsContent value="clinical" className="mt-6">
+              <div className="gov-card space-y-6 p-6">
+                <div>
+                  <h4 className="gov-section-title">Alergias Conhecidas</h4>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {patient.allergies.length > 0 ? (
+                      patient.allergies.map(a => (
+                        <span key={a} className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded text-xs font-bold tracking-wide">
+                          {a}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs text-neutral-500 italic">Nenhuma alergia registada.</p>
+                    )}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3"><Activity className="h-4 w-4 text-primary" /> Condições Crónicas</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {patient.chronic_conditions.length > 0 ? (
-                        patient.chronic_conditions.map(c => <span key={c} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">{c}</span>)
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">Nenhuma condição crónica registada.</p>
-                      )}
-                    </div>
+                </div>
+                
+                <div className="gov-divider"></div>
+                
+                <div>
+                  <h4 className="gov-section-title">Condições Crónicas</h4>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {patient.chronic_conditions.length > 0 ? (
+                      patient.chronic_conditions.map(c => (
+                        <span key={c} className="px-3 py-1 bg-[#0A5C75]/10 border border-[#0A5C75]/20 text-[#0A5C75] rounded text-xs font-bold tracking-wide">
+                          {c}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs text-neutral-500 italic">Nenhuma condição crónica registada.</p>
+                    )}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold mb-2">Observações Gerais</h4>
-                    <p className="text-xs text-muted-foreground bg-muted/30 p-4 rounded-lg">{patient.notes || 'Sem observações adicionais.'}</p>
+                </div>
+                
+                <div className="gov-divider"></div>
+                
+                <div>
+                  <h4 className="gov-section-title">Observações Gerais</h4>
+                  <div className="mt-4 p-4 bg-neutral-50 border border-neutral-100 rounded text-sm text-neutral-700 whitespace-pre-wrap">
+                    {patient.notes || <span className="text-neutral-400 italic">Sem observações adicionais registadas.</span>}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
 
-            <TabsContent value="contacts" className="mt-4">
-              <Card>
-                <CardContent className="p-6">
-                  <h4 className="text-sm font-bold mb-4">Contactos de Emergência</h4>
-                  {patient.emergency_contact_name ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Nome</p>
-                        <p className="font-bold">{patient.emergency_contact_name}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Parentesco</p>
-                        <p className="font-bold text-primary">{patient.emergency_contact_relation}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Telefone</p>
-                        <p className="font-bold">{patient.emergency_contact_phone}</p>
-                      </div>
+            <TabsContent value="contacts" className="mt-6">
+              <div className="gov-card p-6">
+                <span className="gov-section-title mb-6">Contactos de Emergência</span>
+                {patient.emergency_contact_name ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <p className="gov-data-label mb-1">Nome Completo</p>
+                      <p className="gov-data-value font-bold">{patient.emergency_contact_name}</p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">Nenhum contacto de emergência registado.</p>
-                  )}
-                </CardContent>
-              </Card>
+                    <div>
+                      <p className="gov-data-label mb-1">Grau de Parentesco</p>
+                      <p className="gov-data-value text-[#0A5C75] font-bold">{patient.emergency_contact_relation}</p>
+                    </div>
+                    <div>
+                      <p className="gov-data-label mb-1">Telefone Principal</p>
+                      <p className="gov-data-value font-mono font-medium">{patient.emergency_contact_phone}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-neutral-50 border border-dashed border-neutral-200 rounded text-center">
+                    <p className="text-xs text-neutral-500">Nenhum contacto de emergência registado no sistema.</p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <h4 className="text-sm font-bold mb-4">Unidade Sanitária de Registo</h4>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary">
-                  US
-                </div>
-                <div>
-                  <p className="text-sm font-bold leading-none">{patient.health_units?.name || 'Unidade Desconhecida'}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{patient.health_units?.municipality}, {patient.health_units?.province}</p>
-                </div>
+          <div className="gov-card p-6">
+            <span className="gov-section-title mb-6">Unidade Sanitária de Registo</span>
+            
+            <div className="flex items-center gap-4 mb-6 mt-4">
+              <div className="h-12 w-12 bg-[#0A5C75] rounded flex items-center justify-center shrink-0">
+                <Shield className="h-6 w-6 text-white" />
               </div>
-              <div className="pt-4 border-t space-y-3">
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground uppercase font-bold">Inscrito em</span>
-                  <span className="font-bold">{formatDate(patient.created_at)}</span>
-                </div>
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground uppercase font-bold">Última Atualização</span>
-                  <span className="font-bold">{formatDate(patient.updated_at)}</span>
-                </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold leading-tight text-neutral-900 truncate">
+                  {patient.health_units?.name || 'Unidade Desconhecida'}
+                </p>
+                <p className="text-xs text-neutral-500 mt-1 truncate">
+                  {patient.health_units?.municipality}, {patient.health_units?.province}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <div className="border-t border-neutral-100 pt-2 space-y-0">
+              <div className="gov-data-row">
+                <span className="gov-data-label">Inscrição no Sistema</span>
+                <span className="gov-data-value text-xs font-mono">{formatDate(patient.created_at)}</span>
+              </div>
+              <div className="gov-data-row border-none">
+                <span className="gov-data-label">Última Actualização</span>
+                <span className="gov-data-value text-xs font-mono">{formatDate(patient.updated_at)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

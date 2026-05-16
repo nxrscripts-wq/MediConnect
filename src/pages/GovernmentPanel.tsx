@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -14,6 +13,9 @@ import {
   Thermometer,
   Shield,
   RefreshCw,
+  Landmark,
+  TrendingUp,
+  FileBarChart
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,62 +36,93 @@ export default function GovernmentPanel() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="page-title">Painel Governamental</h1>
-          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="gov-badge-oficial bg-[#0A5C75]/10 text-[#0A5C75] border-[#0A5C75]/20">
+                <Landmark className="h-2.5 w-2.5" />
+                Painel Ministerial
+              </span>
+            </div>
+            <h1 className="text-xl font-bold text-neutral-900 tracking-tight">Vigilância Epidemiológica Nacional</h1>
+            <p className="text-sm text-neutral-500 mt-1">Indicadores e métricas de saúde pública — República de Angola</p>
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="stat-card"><CardContent className="p-0"><Skeleton className="h-20 w-full" /></CardContent></Card>
+            <div key={i} className="gov-card p-6 h-[104px] animate-pulse">
+              <div className="h-full w-full bg-neutral-100 rounded" />
+            </div>
           ))}
         </div>
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <div className="gov-card p-6 h-64 animate-pulse">
+          <div className="h-full w-full bg-neutral-100 rounded" />
+        </div>
       </div>
     )
   }
 
   if (!nationalStats) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="page-title">Painel Governamental</h1>
-          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="gov-badge-oficial bg-[#0A5C75]/10 text-[#0A5C75] border-[#0A5C75]/20">
+                <Landmark className="h-2.5 w-2.5" />
+                Painel Ministerial
+              </span>
+            </div>
+            <h1 className="text-xl font-bold text-neutral-900 tracking-tight">Vigilância Epidemiológica Nacional</h1>
+            <p className="text-sm text-neutral-500 mt-1">Indicadores e métricas de saúde pública — República de Angola</p>
+          </div>
         </div>
-        <Card className="border-primary/20">
-          <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-            <Shield className="h-16 w-16 text-primary/20 mb-4" />
-            <h3 className="text-lg font-semibold mb-1">Dados nacionais não disponíveis</h3>
-            <p className="text-sm text-muted-foreground max-w-md mb-6">
-              O painel governamental fica disponível após integração das unidades de saúde
-              e configuração das funções de agregação na base de dados.
-            </p>
-            <Button variant="outline" disabled className="gap-2 opacity-50">
-              Ver Documentação
-            </Button>
-          </CardContent>
-        </Card>
+        
+        <div className="gov-card p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-neutral-300 bg-neutral-50/50">
+          <div className="bg-white p-4 rounded-full shadow-sm mb-4 border border-neutral-200">
+            <Shield className="h-12 w-12 text-[#0A5C75]/40" />
+          </div>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">Dados Nacionais Não Disponíveis</h3>
+          <p className="text-sm text-neutral-500 max-w-md mb-6 leading-relaxed">
+            O painel governamental consolida informação apenas após integração com a rede de unidades de saúde SIGIS e configuração das funções de agregação ministeriais.
+          </p>
+          <Button disabled className="gap-2 bg-neutral-200 text-neutral-500 font-bold">
+            <FileBarChart className="h-4 w-4" /> Consultar Manual de Integração
+          </Button>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="page-title">Painel Governamental</h1>
-          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="gov-badge-oficial bg-[#0A5C75]/10 text-[#0A5C75] border-[#0A5C75]/20">
+                <Landmark className="h-2.5 w-2.5" />
+                Painel Ministerial
+              </span>
+            </div>
+            <h1 className="text-xl font-bold text-neutral-900 tracking-tight">Vigilância Epidemiológica Nacional</h1>
+            <p className="text-sm text-neutral-500 mt-1">Indicadores e métricas de saúde pública — República de Angola</p>
+          </div>
         </div>
-        <Card className="border-destructive/20">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <AlertTriangle className="h-12 w-12 text-destructive/40 mb-4" />
-            <h3 className="text-lg font-semibold mb-1">Erro ao carregar dados</h3>
-            <p className="text-sm text-muted-foreground mb-4">{(error as Error).message}</p>
-            <Button onClick={() => refetch()} variant="outline" className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Tentar novamente
-            </Button>
-          </CardContent>
-        </Card>
+        
+        <div className="gov-card p-12 flex flex-col items-center justify-center text-center border-2 border-[#DC2626]/20 bg-[#DC2626]/5">
+          <div className="bg-white p-4 rounded-full shadow-sm mb-4 border border-[#DC2626]/20">
+            <AlertTriangle className="h-12 w-12 text-[#DC2626]/80" />
+          </div>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">Falha na Sincronização Nacional</h3>
+          <p className="text-sm text-[#DC2626]/80 max-w-md mb-6 leading-relaxed font-medium">
+            {(error as Error).message}
+          </p>
+          <Button onClick={() => refetch()} className="gap-2 bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 font-bold shadow-sm">
+            <RefreshCw className="h-4 w-4" /> Tentar Sincronizar Novamente
+          </Button>
+        </div>
       </div>
     )
   }
@@ -98,19 +131,26 @@ export default function GovernmentPanel() {
   const stats = nationalStats as Record<string, any>
 
   return (
-    <div className="space-y-6">
-      <div className="page-header">
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="page-title">Painel Governamental</h1>
-          <p className="page-subtitle">Vigilância epidemiológica e indicadores nacionais — Angola</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="gov-badge-oficial bg-[#0A5C75]/10 text-[#0A5C75] border-[#0A5C75]/20">
+              <Landmark className="h-2.5 w-2.5" />
+              Painel Ministerial
+            </span>
+          </div>
+          <h1 className="text-xl font-bold text-neutral-900 tracking-tight">Vigilância Epidemiológica Nacional</h1>
+          <p className="text-sm text-neutral-500 mt-1">Indicadores e métricas de saúde pública — República de Angola</p>
         </div>
+        
         <Select defaultValue="all">
-          <SelectTrigger className="w-48">
-            <MapPin className="h-4 w-4 mr-2" />
-            <SelectValue />
+          <SelectTrigger className="w-[240px] bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm font-medium">
+            <MapPin className="h-4 w-4 mr-2 text-[#0A5C75]" />
+            <SelectValue placeholder="Filtro Geográfico" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as Províncias</SelectItem>
+            <SelectItem value="all" className="font-bold text-[#0A5C75]">Território Nacional (Angola)</SelectItem>
             {['Bengo','Benguela','Bié','Cabinda','Cuando Cubango','Cuanza Norte','Cuanza Sul','Cunene','Huambo','Huíla','Luanda','Lunda Norte','Lunda Sul','Malanje','Moxico','Namibe','Uíge','Zaire'].map(p => (
               <SelectItem key={p} value={p.toLowerCase().replace(/ /g, '-')}>{p}</SelectItem>
             ))}
@@ -120,77 +160,107 @@ export default function GovernmentPanel() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Pacientes Registados', value: stats.total_patients?.toLocaleString() ?? '0', icon: Users, change: `${stats.patients_this_month ?? 0} este mês` },
-          { label: 'Consultas Realizadas', value: stats.total_appointments?.toLocaleString() ?? '0', icon: Activity, change: 'Últimos 30 dias' },
-          { label: 'Alertas Activos', value: stats.active_alerts?.toString() ?? '0', icon: AlertTriangle, change: `${stats.critical_alerts ?? 0} críticos` },
-          { label: 'Unidades Conectadas', value: stats.connected_units?.toString() ?? '0', icon: MapPin, change: 'de 18 províncias' },
+          { label: 'Cidadãos Registados', value: stats.total_patients?.toLocaleString() ?? '0', icon: Users, change: `+${stats.patients_this_month ?? 0} no período`, trend: 'up' },
+          { label: 'Intervenções Clínicas', value: stats.total_appointments?.toLocaleString() ?? '0', icon: Activity, change: 'Últimos 30 dias', trend: 'neutral' },
+          { label: 'Alertas Epidemiológicos', value: stats.active_alerts?.toString() ?? '0', icon: AlertTriangle, change: `${stats.critical_alerts ?? 0} classificados como críticos`, trend: 'warning' },
+          { label: 'Unidades Integradas', value: stats.connected_units?.toString() ?? '0', icon: MapPin, change: 'Distribuição em 18 províncias', trend: 'neutral' },
         ].map((stat) => (
-          <Card key={stat.label} className="stat-card">
-            <CardContent className="p-0">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-                  <p className="mt-1 text-2xl font-bold">{stat.value}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{stat.change}</p>
+          <div key={stat.label} className="gov-card p-6 border-l-4 border-l-[#0A5C75] relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <stat.icon className="h-16 w-16" />
+            </div>
+            <div className="flex items-start justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">{stat.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-black text-neutral-900">{stat.value}</p>
                 </div>
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <stat.icon className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-1.5 mt-2">
+                  {stat.trend === 'up' && <TrendingUp className="h-3 w-3 text-[#059669]" />}
+                  {stat.trend === 'warning' && <AlertTriangle className="h-3 w-3 text-[#DC2626]" />}
+                  <p className={`text-[11px] font-medium ${stat.trend === 'up' ? 'text-[#059669]' : stat.trend === 'warning' ? 'text-[#DC2626]' : 'text-neutral-500'}`}>
+                    {stat.change}
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
 
-      {stats.disease_tracker && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Thermometer className="h-4 w-4 text-primary" />
-              Monitoramento de Doenças
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="px-4 py-2.5 font-medium text-muted-foreground">Doença</th>
-                  <th className="px-4 py-2.5 font-medium text-muted-foreground">Casos</th>
-                  <th className="px-4 py-2.5 font-medium text-muted-foreground">Tendência</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(stats.disease_tracker as any[]).map((d: any, i: number) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium">{d.disease ?? d.name}</td>
-                    <td className="px-4 py-2.5">{(d.cases ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{d.trend ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
-
-      {stats.stock_alerts && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              Alertas Provinciais
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(stats.stock_alerts as any[]).map((alert: any, i: number) => (
-              <div key={i} className="rounded-md border border-warning/30 bg-warning/5 p-3">
-                <p className="text-xs font-semibold mb-0.5 text-warning">{alert.medication_name ?? alert.alert_type}</p>
-                <p className="text-xs leading-relaxed text-warning/80">{alert.alert_message ?? '—'}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {stats.disease_tracker && (
+            <div className="gov-card overflow-hidden h-full">
+              <div className="px-5 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Thermometer className="h-4 w-4 text-[#0A5C75]" />
+                  <h2 className="text-sm font-bold text-neutral-900 uppercase tracking-wider">Monitorização Endémica</h2>
+                </div>
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-sm bg-[#0A5C75]/10 text-[#0A5C75]">Notificação Obrigatória</span>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <div className="p-0">
+                <table className="gov-table w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="px-5 py-3 font-bold text-neutral-700 uppercase text-[11px] tracking-wider text-left bg-white">Patologia / Evento</th>
+                      <th className="px-5 py-3 font-bold text-neutral-700 uppercase text-[11px] tracking-wider text-right bg-white">Casos Confirmados</th>
+                      <th className="px-5 py-3 font-bold text-neutral-700 uppercase text-[11px] tracking-wider text-left bg-white border-l border-neutral-200">Evolução Epidêmica</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200 bg-white">
+                    {(stats.disease_tracker as any[]).map((d: any, i: number) => (
+                      <tr key={i} className="hover:bg-neutral-50 transition-colors">
+                        <td className="px-5 py-3 font-bold text-neutral-900">{d.disease ?? d.name}</td>
+                        <td className="px-5 py-3 font-mono text-right text-neutral-700">{(d.cases ?? 0).toLocaleString()}</td>
+                        <td className="px-5 py-3 border-l border-neutral-200">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold ${
+                            d.trend === 'Aumento' || d.trend === 'Alta' ? 'bg-[#DC2626]/10 text-[#DC2626]' :
+                            d.trend === 'Estável' ? 'bg-[#D97706]/10 text-[#D97706]' :
+                            'bg-[#059669]/10 text-[#059669]'
+                          }`}>
+                            {d.trend === 'Aumento' || d.trend === 'Alta' ? <TrendingUp className="h-3 w-3" /> : null}
+                            {d.trend ?? '—'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          {stats.stock_alerts && (
+            <div className="gov-card overflow-hidden h-full">
+              <div className="px-5 py-4 border-b border-neutral-200 bg-[#DC2626]/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-[#DC2626]" />
+                  <h2 className="text-sm font-bold text-[#DC2626] uppercase tracking-wider">Despachos Críticos</h2>
+                </div>
+              </div>
+              <div className="p-4 space-y-3 bg-white">
+                {(stats.stock_alerts as any[]).map((alert: any, i: number) => (
+                  <div key={i} className="relative pl-4 py-2 border-l-2 border-[#DC2626]">
+                    <p className="text-xs font-bold text-neutral-900 mb-1 uppercase tracking-wider">{alert.medication_name ?? alert.alert_type}</p>
+                    <p className="text-sm text-neutral-600 leading-relaxed font-medium">{alert.alert_message ?? '—'}</p>
+                  </div>
+                ))}
+                
+                {(stats.stock_alerts as any[]).length === 0 && (
+                  <div className="text-center py-6">
+                    <Shield className="h-8 w-8 text-[#059669]/50 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-[#059669]">Nenhum alerta crítico registado</p>
+                    <p className="text-xs text-neutral-500 mt-1">O sistema encontra-se estável.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

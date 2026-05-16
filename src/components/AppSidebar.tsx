@@ -15,6 +15,8 @@ import {
   Menu,
   Heart,
   LogOut,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -123,6 +125,17 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+  {
+    label: "Sistema",
+    items: [
+      {
+        title: "Administração",
+        url: "/admin",
+        icon: ShieldCheck,
+        allowedRoles: ["admin"],
+      },
+    ],
+  },
 ];
 
 // ---------- component ----------
@@ -166,54 +179,73 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
     <>
       <aside
         className={cn(
-          // Base: sempre visível em desktop como elemento do flow normal
-          "flex h-screen flex-col bg-sidebar text-sidebar-foreground",
-          "border-r border-sidebar-border transition-all duration-300",
-          // Desktop: elemento estático no flow, largura dinâmica
-          "hidden md:flex",
-          collapsed ? "md:w-16" : "md:w-60",
-          // Mobile: overlay fixo controlado por prop
-          mobileSidebarOpen
-            ? "flex fixed left-0 top-0 z-50 w-72 shadow-2xl"
-            : "fixed left-0 top-0 z-50 w-72 -translate-x-full"
+          "h-screen flex-col bg-[#0A5C75] text-white",
+          "transition-all duration-300",
+          "z-50 shrink-0",
+          // Desktop specific
+          "md:relative md:translate-x-0 md:flex",
+          collapsed ? "md:w-16" : "md:w-64",
+          // Mobile specific
+          "fixed left-0 top-0 w-72",
+          mobileSidebarOpen 
+            ? "flex translate-x-0 shadow-2xl" 
+            : "hidden -translate-x-full"
         )}
       >
+        <div className="gov-header-band"></div>
         {/* Logo */}
-        <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="flex h-[72px] items-center justify-between px-4">
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-sidebar-primary" />
+            <div className="flex items-center gap-3">
+              <Activity className="h-5 w-5 text-white" />
               <div className="flex flex-col">
-                <span className="text-sm font-bold tracking-tight text-sidebar-primary-foreground">
+                <span className="text-base font-bold text-white leading-tight">
                   MediConnect
                 </span>
-
+                <span className="text-[9px] text-white/50 tracking-[0.15em] uppercase">
+                  República de Angola · MINSA
+                </span>
               </div>
             </div>
           )}
-          {collapsed && <Activity className="mx-auto h-5 w-5 text-sidebar-primary" />}
+          {collapsed && <Activity className="mx-auto h-5 w-5 text-white" />}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:flex items-center justify-center rounded-md p-1 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            className="hidden md:flex items-center justify-center rounded-md p-1 text-white/40 hover:text-white transition-colors"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
 
+        {/* Unidade */}
+        {!collapsed && profile && (
+          <div className="mx-3 my-2 px-4 py-3 rounded bg-[#0E5C6E] flex items-start gap-2">
+            <Building2 className="h-3 w-3 text-white/50 mt-0.5 shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-white/90 truncate">
+                {displayUnit}
+              </span>
+              <span className="text-[9px] text-white/40 uppercase tracking-wide">
+                CÓDIGO SIGIS: {profile.health_unit_id?.substring(0, 8) || 'N/A'}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2">
+        <nav className="flex-1 overflow-y-auto py-2">
           {menuSections.map((section) => {
             const visibleItems = filterItems(section.items);
             if (visibleItems.length === 0) return null;
 
             return (
-              <div key={section.label} className="mb-4">
+              <div key={section.label} className="mb-2">
                 {!collapsed && (
-                  <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
+                  <p className="px-4 pt-4 pb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">
                     {section.label}
                   </p>
                 )}
-                <ul className="space-y-0.5">
+                <ul className="space-y-0">
                   {visibleItems.map((item) => (
                     <li key={item.url}>
                       <NavLink
@@ -224,15 +256,23 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
                         }}
                         className={({ isActive }) =>
                           cn(
-                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                            "flex items-center gap-3 px-4 py-2.5 rounded-none transition-colors",
                             isActive
-                              ? "bg-sidebar-accent text-sidebar-primary font-medium"
-                              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              ? "bg-white/15 border-l-[3px] border-white"
+                              : "border-l-[3px] border-transparent hover:bg-white/5"
                           )
                         }
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
+                        {({ isActive }) => (
+                          <>
+                            <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-white" : "text-white/60")} />
+                            {!collapsed && (
+                              <span className={cn("text-[13px]", isActive ? "text-white font-medium" : "text-white/75")}>
+                                {item.title}
+                              </span>
+                            )}
+                          </>
+                        )}
                       </NavLink>
                     </li>
                   ))}
@@ -243,31 +283,29 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-3">
+        <div className="bg-black/20 px-4 py-3">
           {!collapsed ? (
-            <div className="flex items-center gap-2 rounded-md bg-sidebar-accent px-3 py-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-white/15 text-white text-xs font-bold shrink-0">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate text-sidebar-accent-foreground leading-none mb-1">
+                <p className="text-xs font-semibold text-white truncate leading-tight">
                   {displayName}
                 </p>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[10px] text-sidebar-muted truncate">
+                <div className="flex flex-col leading-tight mt-0.5">
+                  <span className="text-[10px] text-white/50 uppercase tracking-wide truncate">
                     {displayRole}
                   </span>
-                  {profile?.health_unit_name && (
-                    <span className="text-[10px] text-sidebar-muted truncate italic">
-                      {profile.health_unit_name}
-                    </span>
-                  )}
+                  <span className="text-[9px] text-white/40 truncate">
+                    {displayUnit}
+                  </span>
                 </div>
               </div>
               <button
                 onClick={handleSignOut}
                 title="Terminar sessão"
-                className="p-1 rounded text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                className="p-1 rounded text-white/40 hover:text-white transition-colors"
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
@@ -277,7 +315,7 @@ export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSide
               <button
                 onClick={handleSignOut}
                 title="Terminar sessão"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                className="flex h-8 w-8 items-center justify-center rounded bg-white/15 text-white text-xs font-bold cursor-pointer hover:bg-white/25 transition-colors"
               >
                 {initials}
               </button>

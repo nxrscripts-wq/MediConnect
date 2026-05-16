@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Heart, Baby, Apple, AlertTriangle, Syringe, ClipboardList, UserPlus, Stethoscope, Scale, Calendar, Shield, MessageCircle, Plus, Trash2 } from "lucide-react";
+import { Heart, Baby, Apple, AlertTriangle, Syringe, ClipboardList, UserPlus, Stethoscope, Calendar, Shield, MessageCircle, Plus, Trash2, ShieldCheck, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { ExportButton } from "@/components/ExportButton";
 
 // ── Types ──
 interface PrenatalVisit {
@@ -144,688 +142,987 @@ export default function MaternityNotebook() {
   };
 
   const handleSave = () => {
-    toast.success("Caderno de Maternidade guardado com sucesso!");
+    toast.success("Caderno da Gestante guardado no registo nacional com sucesso.");
+  };
+
+  const handleExport = (format: string) => {
+    toast.success(`Exportação oficial em ${format.toUpperCase()} em curso...`);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Heart className="h-6 w-6 text-pink-500" />
-            Caderno de Maternidade
+          <div className="flex items-center gap-2 mb-2">
+            <span className="gov-badge-oficial bg-pink-100 text-pink-800 border-pink-200">
+              <ShieldCheck className="h-2.5 w-2.5" />
+              Documento Oficial
+            </span>
+            <span className="text-xs font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded border border-neutral-200">
+              MINSA - Saúde Materna
+            </span>
+          </div>
+          <h1 className="text-xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
+            Caderno da Gestante <Heart className="h-5 w-5 text-pink-600 fill-pink-600" />
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Acompanhamento completo da gravidez até ao primeiro ano de vida do bebé
+          <p className="text-sm text-neutral-500 mt-1 max-w-2xl">
+            Acompanhamento clínico da gravidez, parto e primeiro ano de vida do recém-nascido.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="text-pink-600 border-pink-300 bg-pink-50">
-            MamãCaderno Angola
-          </Badge>
-          <Button onClick={handleSave} className="bg-pink-600 hover:bg-pink-700 text-white">
-            Guardar Caderno
+        <div className="flex flex-wrap gap-2">
+          <ExportButton 
+            onExport={handleExport}
+            formats={['pdf', 'csv']}
+            className="border-neutral-300 text-neutral-700 hover:bg-neutral-50 h-10 font-bold"
+          />
+          <Button variant="outline" className="h-10 font-bold border-neutral-300 text-neutral-700 hover:bg-neutral-50" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" /> Imprimir
+          </Button>
+          <Button className="h-10 font-bold bg-[#0A5C75] hover:bg-[#0A5C75]/90 text-white shadow-sm" onClick={handleSave}>
+            <ShieldCheck className="h-4 w-4 mr-2" /> Registar no Sistema Nacional
           </Button>
         </div>
       </div>
 
-      {/* Message */}
-      <Card className="border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50">
-        <CardContent className="p-4">
-          <p className="text-sm text-pink-800 italic flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 shrink-0" />
-            "Cada mamã informada, uma vida protegida." — Leve sempre este caderno nas consultas.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="gov-alert gov-alert-info bg-pink-50 border-pink-200 mb-6">
+        <div className="flex gap-3">
+          <MessageCircle className="h-5 w-5 text-pink-700 shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-pink-800">Diretriz Nacional de Saúde Materna</p>
+            <p className="text-xs text-pink-700/90">
+              Este registo é obrigatório para todas as consultas pré-natais. A gestante deve realizar no mínimo 6 consultas antes do parto.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="dados" className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="dados" className="text-xs gap-1"><UserPlus className="h-3 w-3" />Dados</TabsTrigger>
-          <TabsTrigger value="historico" className="text-xs gap-1"><ClipboardList className="h-3 w-3" />Histórico</TabsTrigger>
-          <TabsTrigger value="gravidez" className="text-xs gap-1"><Heart className="h-3 w-3" />Gravidez</TabsTrigger>
-          <TabsTrigger value="consultas" className="text-xs gap-1"><Calendar className="h-3 w-3" />Consultas</TabsTrigger>
-          <TabsTrigger value="alimentacao" className="text-xs gap-1"><Apple className="h-3 w-3" />Alimentação</TabsTrigger>
-          <TabsTrigger value="alertas" className="text-xs gap-1"><AlertTriangle className="h-3 w-3" />Alertas</TabsTrigger>
-          <TabsTrigger value="vacinas" className="text-xs gap-1"><Syringe className="h-3 w-3" />Vacinas</TabsTrigger>
-          <TabsTrigger value="parto" className="text-xs gap-1"><Stethoscope className="h-3 w-3" />Parto</TabsTrigger>
-          <TabsTrigger value="bebe" className="text-xs gap-1"><Baby className="h-3 w-3" />Bebé</TabsTrigger>
-          <TabsTrigger value="posparto" className="text-xs gap-1"><Shield className="h-3 w-3" />Pós-Parto</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-neutral-100/50 p-1.5 rounded-md border border-neutral-200 mb-6">
+          <TabsTrigger value="dados" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><UserPlus className="h-3.5 w-3.5" />Dados</TabsTrigger>
+          <TabsTrigger value="historico" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><ClipboardList className="h-3.5 w-3.5" />Histórico</TabsTrigger>
+          <TabsTrigger value="gravidez" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-pink-600 data-[state=active]:shadow-sm"><Heart className="h-3.5 w-3.5" />Gravidez</TabsTrigger>
+          <TabsTrigger value="consultas" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><Calendar className="h-3.5 w-3.5" />Consultas</TabsTrigger>
+          <TabsTrigger value="alimentacao" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#059669] data-[state=active]:shadow-sm"><Apple className="h-3.5 w-3.5" />Nutrição</TabsTrigger>
+          <TabsTrigger value="alertas" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#DC2626] data-[state=active]:shadow-sm"><AlertTriangle className="h-3.5 w-3.5" />Alertas</TabsTrigger>
+          <TabsTrigger value="vacinas" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><Syringe className="h-3.5 w-3.5" />Imunização</TabsTrigger>
+          <TabsTrigger value="parto" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><Stethoscope className="h-3.5 w-3.5" />Parto</TabsTrigger>
+          <TabsTrigger value="bebe" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><Baby className="h-3.5 w-3.5" />Recém-Nascido</TabsTrigger>
+          <TabsTrigger value="posparto" className="text-xs gap-1.5 font-bold px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-[#0A5C75] data-[state=active]:shadow-sm"><Shield className="h-3.5 w-3.5" />Pós-Parto</TabsTrigger>
         </TabsList>
 
         {/* ═══ 1. DADOS DA GESTANTE ═══ */}
-        <TabsContent value="dados">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-pink-500" />
-                Dados da Gestante
-              </CardTitle>
-              <CardDescription>Informações pessoais da mamã</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Label>Nome Completo</Label>
-                <Input value={gestante.nomeCompleto} onChange={(e) => updateGestante("nomeCompleto", e.target.value)} placeholder="Nome completo da gestante" />
+        <TabsContent value="dados" className="space-y-6 mt-0">
+          <div className="gov-card overflow-hidden">
+            <div className="bg-[#0A5C75]/5 px-6 py-4 border-b border-[#0A5C75]/10 flex items-center gap-3">
+              <div className="bg-[#0A5C75]/10 p-2 rounded shrink-0">
+                <UserPlus className="h-5 w-5 text-[#0A5C75]" />
               </div>
               <div>
-                <Label>Data de Nascimento</Label>
-                <Input type="date" value={gestante.dataNascimento} onChange={(e) => updateGestante("dataNascimento", e.target.value)} />
+                <h2 className="text-base font-bold text-neutral-900">Identificação da Gestante</h2>
+                <p className="text-xs text-neutral-500 mt-0.5">Informações sociodemográficas para o processo clínico</p>
               </div>
-              <div>
-                <Label>Idade</Label>
-                <Input value={gestante.idade} onChange={(e) => updateGestante("idade", e.target.value)} placeholder="Ex: 28 anos" />
-              </div>
-              <div>
-                <Label>Estado Civil</Label>
-                <Select value={gestante.estadoCivil} onValueChange={(v) => updateGestante("estadoCivil", v)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="solteira">Solteira</SelectItem>
-                    <SelectItem value="casada">Casada</SelectItem>
-                    <SelectItem value="uniao_facto">União de Facto</SelectItem>
-                    <SelectItem value="divorciada">Divorciada</SelectItem>
-                    <SelectItem value="viuva">Viúva</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Grupo Sanguíneo</Label>
-                <Select value={gestante.grupoSanguineo} onValueChange={(v) => updateGestante("grupoSanguineo", v)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                  <SelectContent>
-                    {bloodGroups.map((g) => (
-                      <SelectItem key={g} value={g}>{g}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Label>Endereço</Label>
-                <Input value={gestante.endereco} onChange={(e) => updateGestante("endereco", e.target.value)} placeholder="Bairro, Município, Província" />
-              </div>
-              <div>
-                <Label>Contacto</Label>
-                <Input value={gestante.contacto} onChange={(e) => updateGestante("contacto", e.target.value)} placeholder="+244 9XX XXX XXX" />
-              </div>
-              <div>
-                <Label>Nome do Acompanhante</Label>
-                <Input value={gestante.nomeAcompanhante} onChange={(e) => updateGestante("nomeAcompanhante", e.target.value)} placeholder="Marido, mãe, irmã..." />
-              </div>
-              <div>
-                <Label>Contacto de Emergência</Label>
-                <Input value={gestante.contactoEmergencia} onChange={(e) => updateGestante("contactoEmergencia", e.target.value)} placeholder="+244 9XX XXX XXX" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 2. HISTÓRICO DE SAÚDE ═══ */}
-        <TabsContent value="historico">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-pink-500" />
-                Histórico de Saúde
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Já esteve grávida antes?</Label>
-                <RadioGroup value={historico.jaEstiveGravida} onValueChange={(v) => updateHistorico("jaEstiveGravida", v)} className="flex gap-4 mt-2">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="sim" id="gravida-sim" />
-                    <Label htmlFor="gravida-sim">Sim</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="nao" id="gravida-nao" />
-                    <Label htmlFor="gravida-nao">Não</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <div>
-                <Label>Quantas gestações?</Label>
-                <Input type="number" value={historico.quantasGestacoes} onChange={(e) => updateHistorico("quantasGestacoes", e.target.value)} placeholder="0" />
-              </div>
-              <div>
-                <Label>Partos anteriores</Label>
-                <Input type="number" value={historico.partosAnteriores} onChange={(e) => updateHistorico("partosAnteriores", e.target.value)} placeholder="0" />
-              </div>
-              <div>
-                <Label>Abortos</Label>
-                <Input type="number" value={historico.abortos} onChange={(e) => updateHistorico("abortos", e.target.value)} placeholder="0" />
-              </div>
-              <div className="md:col-span-2">
-                <Label>Doenças Crónicas</Label>
-                <Textarea value={historico.doencasCronicas} onChange={(e) => updateHistorico("doencasCronicas", e.target.value)} placeholder="Hipertensão, diabetes, malária recorrente..." />
-              </div>
-              <div>
-                <Label>Alergias</Label>
-                <Input value={historico.alergias} onChange={(e) => updateHistorico("alergias", e.target.value)} placeholder="Medicamentos, alimentos..." />
-              </div>
-              <div>
-                <Label>Uso de Medicamentos</Label>
-                <Input value={historico.usoMedicamentos} onChange={(e) => updateHistorico("usoMedicamentos", e.target.value)} placeholder="Medicamentos actuais" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 3. INÍCIO DA GRAVIDEZ ═══ */}
-        <TabsContent value="gravidez">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Heart className="h-5 w-5 text-pink-500" />
-                Início da Gravidez
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Data da Última Menstruação (DUM)</Label>
-                <Input type="date" value={gravidez.dataUltimaMenstruacao} onChange={(e) => updateGravidez("dataUltimaMenstruacao", e.target.value)} />
-              </div>
-              <div>
-                <Label>Data Provável do Parto (DPP)</Label>
-                <Input type="date" value={gravidez.dataProvavelParto} onChange={(e) => updateGravidez("dataProvavelParto", e.target.value)} />
-              </div>
-              <div>
-                <Label>Tipo de Gravidez</Label>
-                <RadioGroup value={gravidez.tipoGravidez} onValueChange={(v) => updateGravidez("tipoGravidez", v)} className="flex gap-4 mt-2">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="unica" id="gravidez-unica" />
-                    <Label htmlFor="gravidez-unica">Única</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="gemeos" id="gravidez-gemeos" />
-                    <Label htmlFor="gravidez-gemeos">Gémeos</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 4. CONSULTAS PRÉ-NATAIS ═══ */}
-        <TabsContent value="consultas">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-pink-500" />
-                  Consultas Pré-Natais
-                </CardTitle>
-                <CardDescription>A mamã deve fazer pelo menos 6 consultas durante a gravidez</CardDescription>
-              </div>
-              <Button onClick={addConsulta} size="sm" variant="outline" className="gap-1">
-                <Plus className="h-4 w-4" /> Adicionar
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {consultas.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-8">Nenhuma consulta registada. Clique em "Adicionar" para começar.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Idade Gestacional</TableHead>
-                        <TableHead>Peso (kg)</TableHead>
-                        <TableHead>Tensão Arterial</TableHead>
-                        <TableHead>Observações</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {consultas.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell><Input type="date" value={c.date} onChange={(e) => updateConsulta(c.id, "date", e.target.value)} className="w-36" /></TableCell>
-                          <TableCell><Input value={c.gestationalAge} onChange={(e) => updateConsulta(c.id, "gestationalAge", e.target.value)} placeholder="Ex: 12 sem" className="w-24" /></TableCell>
-                          <TableCell><Input value={c.weight} onChange={(e) => updateConsulta(c.id, "weight", e.target.value)} placeholder="kg" className="w-20" /></TableCell>
-                          <TableCell><Input value={c.bloodPressure} onChange={(e) => updateConsulta(c.id, "bloodPressure", e.target.value)} placeholder="120/80" className="w-24" /></TableCell>
-                          <TableCell><Input value={c.observations} onChange={(e) => updateConsulta(c.id, "observations", e.target.value)} placeholder="Observações" /></TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => removeConsulta(c.id)} className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              <div className="mt-4 p-3 bg-pink-50 rounded-lg">
-                <p className="text-xs text-pink-700">
-                  <strong>Calendário recomendado:</strong> 1ª consulta até 12 semanas • 2ª às 20 sem • 3ª às 26 sem • 4ª às 30 sem • 5ª às 34 sem • 6ª às 38 sem
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 5. ALIMENTAÇÃO ═══ */}
-        <TabsContent value="alimentacao">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-green-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-green-700 flex items-center gap-2">
-                  <Apple className="h-5 w-5" />
-                  Alimentos Recomendados
-                </CardTitle>
-                <CardDescription>Alimentos locais angolanos nutritivos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  {[
-                    { name: "Funje (bem preparado)", desc: "Rico em carboidratos, energia para a mamã" },
-                    { name: "Peixe seco e fresco", desc: "Proteína e ómega-3 para o desenvolvimento do bebé" },
-                    { name: "Feijão", desc: "Ferro e proteína vegetal" },
-                    { name: "Banana-pão", desc: "Potássio e energia" },
-                    { name: "Mandioca", desc: "Fonte de energia, deve ser bem cozinhada" },
-                    { name: "Batata-doce", desc: "Vitamina A, essencial para a visão do bebé" },
-                    { name: "Legumes verdes", desc: "Ácido fólico, ferro e vitaminas" },
-                    { name: "Frutas da época", desc: "Vitaminas C e fibras" },
-                    { name: "Ginguba (amendoim)", desc: "Proteína e gorduras saudáveis" },
-                    { name: "Ovo", desc: "Proteína completa, fácil de preparar" },
-                  ].map((item) => (
-                    <li key={item.name} className="flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">✓</span>
-                      <div>
-                        <span className="font-medium">{item.name}</span>
-                        <p className="text-muted-foreground text-xs">{item.desc}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="border-red-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-red-700 flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Evitar Durante a Gravidez
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  {[
-                    { name: "Bebidas alcoólicas", desc: "Causa malformações no bebé" },
-                    { name: "Cigarro e tabaco", desc: "Reduz oxigénio para o bebé" },
-                    { name: "Medicamentos sem receita", desc: "Podem ser perigosos na gravidez" },
-                    { name: "Comida mal cozinhada", desc: "Risco de infecções" },
-                    { name: "Excesso de sal", desc: "Aumenta a tensão arterial" },
-                  ].map((item) => (
-                    <li key={item.name} className="flex items-start gap-2">
-                      <span className="text-red-500 mt-0.5">✗</span>
-                      <div>
-                        <span className="font-medium">{item.name}</span>
-                        <p className="text-muted-foreground text-xs">{item.desc}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-6 p-3 bg-blue-50 rounded-lg">
-                  <h4 className="text-sm font-semibold text-blue-700 mb-2">Higiene e Cuidados</h4>
-                  <ul className="text-xs text-blue-800 space-y-1">
-                    <li>• Beber muita água (pelo menos 8 copos por dia)</li>
-                    <li>• Dormir bem (8 horas por noite)</li>
-                    <li>• Usar roupas confortáveis</li>
-                    <li>• Evitar carregar peso</li>
-                    <li>• Fazer caminhadas leves</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* ═══ 6. SINAIS DE ALERTA ═══ */}
-        <TabsContent value="alertas">
-          <Card className="border-red-300">
-            <CardHeader>
-              <CardTitle className="text-lg text-red-700 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Sinais de Alerta na Gravidez
-              </CardTitle>
-              <CardDescription>Procure o hospital IMEDIATAMENTE se tiver algum destes sinais</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  { signal: "Sangramento vaginal", desc: "Qualquer sangramento, mesmo pequeno", severity: "critico" },
-                  { signal: "Dor forte na barriga", desc: "Dor intensa que não passa", severity: "critico" },
-                  { signal: "Febre alta (acima de 38°C)", desc: "Pode indicar infecção grave", severity: "critico" },
-                  { signal: "Inchaço excessivo", desc: "Rosto, mãos ou pés muito inchados", severity: "alto" },
-                  { signal: "Falta de movimentos do bebé", desc: "Bebé não mexe há mais de 12 horas (após 28 semanas)", severity: "critico" },
-                  { signal: "Dor de cabeça forte", desc: "Dor que não passa com repouso", severity: "alto" },
-                  { signal: "Visão turva", desc: "Ver manchas ou pontos luminosos", severity: "alto" },
-                  { signal: "Perda de líquido pela vagina", desc: "Pode ser rotura da bolsa", severity: "critico" },
-                  { signal: "Vómitos persistentes", desc: "Não consegue comer nem beber", severity: "medio" },
-                  { signal: "Ardor ao urinar", desc: "Pode indicar infecção urinária", severity: "medio" },
-                ].map((item) => (
-                  <div
-                    key={item.signal}
-                    className={`p-3 rounded-lg border ${
-                      item.severity === "critico"
-                        ? "bg-red-50 border-red-300"
-                        : item.severity === "alto"
-                        ? "bg-orange-50 border-orange-300"
-                        : "bg-yellow-50 border-yellow-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge
-                        variant="outline"
-                        className={
-                          item.severity === "critico"
-                            ? "text-red-700 border-red-400 bg-red-100 text-[10px]"
-                            : item.severity === "alto"
-                            ? "text-orange-700 border-orange-400 bg-orange-100 text-[10px]"
-                            : "text-yellow-700 border-yellow-400 bg-yellow-100 text-[10px]"
-                        }
-                      >
-                        {item.severity === "critico" ? "CRÍTICO" : item.severity === "alto" ? "ALTO" : "MÉDIO"}
-                      </Badge>
-                    </div>
-                    <p className="font-semibold text-sm">{item.signal}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 p-4 bg-red-100 rounded-lg text-center">
-                <p className="text-red-800 font-semibold text-sm">
-                  🚨 Em caso de emergência, vá IMEDIATAMENTE ao hospital mais próximo ou ligue para o 111 (INEM Angola)
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 7. VACINAS DA GESTANTE ═══ */}
-        <TabsContent value="vacinas">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Syringe className="h-5 w-5 text-pink-500" />
-                Vacinas da Gestante
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Tétano — 1ª Dose</Label>
-                  <Input type="date" value={vacinasGestante.tetano1} onChange={(e) => setVacinasGestante((p) => ({ ...p, tetano1: e.target.value }))} />
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="md:col-span-2 lg:col-span-3">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Nome Completo *</Label>
+                  <Input 
+                    value={gestante.nomeCompleto} 
+                    onChange={(e) => updateGestante("nomeCompleto", e.target.value)} 
+                    placeholder="Nome conforme registo civil" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
                 </div>
                 <div>
-                  <Label>Tétano — 2ª Dose</Label>
-                  <Input type="date" value={vacinasGestante.tetano2} onChange={(e) => setVacinasGestante((p) => ({ ...p, tetano2: e.target.value }))} />
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Data de Nascimento</Label>
+                  <Input 
+                    type="date" 
+                    value={gestante.dataNascimento} 
+                    onChange={(e) => updateGestante("dataNascimento", e.target.value)} 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
                 </div>
-              </div>
-              <div>
-                <Label>Outras Vacinas</Label>
-                <Textarea value={vacinasGestante.outras} onChange={(e) => setVacinasGestante((p) => ({ ...p, outras: e.target.value }))} placeholder="COVID-19, Hepatite B, outras..." />
-              </div>
-
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <h4 className="text-sm font-semibold text-blue-700 mb-2">Vacinas do Bebé (PAV - Programa Alargado de Vacinação)</h4>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Idade</TableHead>
-                        <TableHead>Vacina</TableHead>
-                        <TableHead>Data de Administração</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[
-                        { age: "Ao nascer", vaccine: "BCG + VPO-0 + Hepatite B" },
-                        { age: "6 semanas", vaccine: "Penta 1 + VPO-1 + Pneumo 1 + Rotavírus 1" },
-                        { age: "10 semanas", vaccine: "Penta 2 + VPO-2 + Pneumo 2 + Rotavírus 2" },
-                        { age: "14 semanas", vaccine: "Penta 3 + VPO-3 + Pneumo 3 + VPI" },
-                        { age: "9 meses", vaccine: "Sarampo + Febre Amarela + Vitamina A" },
-                        { age: "15 meses", vaccine: "Reforço Sarampo" },
-                      ].map((row) => (
-                        <TableRow key={row.age}>
-                          <TableCell className="font-medium text-sm">{row.age}</TableCell>
-                          <TableCell className="text-sm">{row.vaccine}</TableCell>
-                          <TableCell><Input type="date" className="w-36" /></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 8. PARTO ═══ */}
-        <TabsContent value="parto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Stethoscope className="h-5 w-5 text-pink-500" />
-                Registo do Parto
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Local do Parto</Label>
-                <Input value={parto.localParto} onChange={(e) => updateParto("localParto", e.target.value)} placeholder="Hospital, Maternidade..." />
-              </div>
-              <div>
-                <Label>Data do Parto</Label>
-                <Input type="date" value={parto.dataParto} onChange={(e) => updateParto("dataParto", e.target.value)} />
-              </div>
-              <div>
-                <Label>Tipo de Parto</Label>
-                <Select value={parto.tipoParto} onValueChange={(v) => updateParto("tipoParto", v)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Parto Normal</SelectItem>
-                    <SelectItem value="cesariana">Cesariana</SelectItem>
-                    <SelectItem value="forceps">Fórceps</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Sexo do Bebé</Label>
-                <Select value={parto.sexoBebe} onValueChange={(v) => updateParto("sexoBebe", v)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="feminino">Feminino</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Label>Nome do Bebé</Label>
-                <Input value={parto.nomeBebe} onChange={(e) => updateParto("nomeBebe", e.target.value)} placeholder="Nome completo do bebé" />
-              </div>
-              <div>
-                <Label>Peso ao Nascer (g)</Label>
-                <Input value={parto.pesoBebe} onChange={(e) => updateParto("pesoBebe", e.target.value)} placeholder="Ex: 3200" />
-              </div>
-              <div>
-                <Label>Altura ao Nascer (cm)</Label>
-                <Input value={parto.alturaBebe} onChange={(e) => updateParto("alturaBebe", e.target.value)} placeholder="Ex: 49" />
-              </div>
-              <div>
-                <Label>APGAR 1 min</Label>
-                <Input value={parto.apgar1} onChange={(e) => updateParto("apgar1", e.target.value)} placeholder="0-10" />
-              </div>
-              <div>
-                <Label>APGAR 5 min</Label>
-                <Input value={parto.apgar5} onChange={(e) => updateParto("apgar5", e.target.value)} placeholder="0-10" />
-              </div>
-              <div className="md:col-span-2">
-                <Label>Observações do Parto</Label>
-                <Textarea value={parto.observacoesParto} onChange={(e) => updateParto("observacoesParto", e.target.value)} placeholder="Complicações, intercorrências..." />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 9. BEBÉ - CRESCIMENTO ═══ */}
-        <TabsContent value="bebe">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Baby className="h-5 w-5 text-pink-500" />
-                  Crescimento do Bebé
-                </CardTitle>
-                <CardDescription>Acompanhamento mensal de peso e altura</CardDescription>
-              </div>
-              <Button onClick={addCrescimento} size="sm" variant="outline" className="gap-1">
-                <Plus className="h-4 w-4" /> Adicionar
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {crescimento.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-8">Nenhum registo de crescimento. Clique em "Adicionar" para começar.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Idade (meses)</TableHead>
-                        <TableHead>Peso (kg)</TableHead>
-                        <TableHead>Altura (cm)</TableHead>
-                        <TableHead>Observações</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {crescimento.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell><Input type="date" value={c.date} onChange={(e) => updateCrescimento(c.id, "date", e.target.value)} className="w-36" /></TableCell>
-                          <TableCell><Input value={c.ageMonths} onChange={(e) => updateCrescimento(c.id, "ageMonths", e.target.value)} placeholder="meses" className="w-20" /></TableCell>
-                          <TableCell><Input value={c.weight} onChange={(e) => updateCrescimento(c.id, "weight", e.target.value)} placeholder="kg" className="w-20" /></TableCell>
-                          <TableCell><Input value={c.height} onChange={(e) => updateCrescimento(c.id, "height", e.target.value)} placeholder="cm" className="w-20" /></TableCell>
-                          <TableCell><Input value={c.observations} onChange={(e) => updateCrescimento(c.id, "observations", e.target.value)} placeholder="Observações" /></TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => removeCrescimento(c.id)} className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-3 bg-pink-50 rounded-lg">
-                  <h4 className="text-sm font-semibold text-pink-700 mb-2">🍼 Amamentação</h4>
-                  <ul className="text-xs text-pink-800 space-y-1">
-                    <li>• Amamentação exclusiva até aos 6 meses</li>
-                    <li>• Dar de mamar sempre que o bebé quiser</li>
-                    <li>• Não dar água nem chá antes dos 6 meses</li>
-                    <li>• Após 6 meses: introduzir alimentos complementares</li>
-                  </ul>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <h4 className="text-sm font-semibold text-blue-700 mb-2">🛁 Cuidados com o Bebé</h4>
-                  <ul className="text-xs text-blue-800 space-y-1">
-                    <li>• Banho diário com água morna</li>
-                    <li>• Higiene do umbigo com álcool 70%</li>
-                    <li>• Dormir de barriga para cima</li>
-                    <li>• Ambiente limpo e arejado</li>
-                    <li>• Usar rede mosquiteira</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ═══ 10. PÓS-PARTO ═══ */}
-        <TabsContent value="posparto">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-pink-500" />
-                  Saúde Pós-Parto da Mamã
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Amamentação</Label>
-                  <Select value={posParto.amamentacao} onValueChange={(v) => updatePosParto("amamentacao", v)}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Idade Atual</Label>
+                  <Input 
+                    value={gestante.idade} 
+                    onChange={(e) => updateGestante("idade", e.target.value)} 
+                    placeholder="Anos completos" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Estado Civil</Label>
+                  <Select value={gestante.estadoCivil} onValueChange={(v) => updateGestante("estadoCivil", v)}>
+                    <SelectTrigger className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="exclusiva">Amamentação Exclusiva</SelectItem>
-                      <SelectItem value="mista">Amamentação Mista</SelectItem>
-                      <SelectItem value="artificial">Alimentação Artificial</SelectItem>
+                      <SelectItem value="solteira">Solteira</SelectItem>
+                      <SelectItem value="casada">Casada</SelectItem>
+                      <SelectItem value="uniao_facto">União de Facto</SelectItem>
+                      <SelectItem value="divorciada">Divorciada</SelectItem>
+                      <SelectItem value="viuva">Viúva</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Visita Pós-Parto</Label>
-                  <Input type="date" value={posParto.visitaPosParto} onChange={(e) => updatePosParto("visitaPosParto", e.target.value)} />
-                </div>
-                <div>
-                  <Label>Método Contraceptivo</Label>
-                  <Select value={posParto.metodoContraceptivo} onValueChange={(v) => updatePosParto("metodoContraceptivo", v)}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Grupo Sanguíneo</Label>
+                  <Select value={gestante.grupoSanguineo} onValueChange={(v) => updateGestante("grupoSanguineo", v)}>
+                    <SelectTrigger className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="nenhum">Nenhum</SelectItem>
-                      <SelectItem value="pilula">Pílula</SelectItem>
-                      <SelectItem value="injectavel">Injectável (Depo-Provera)</SelectItem>
-                      <SelectItem value="implante">Implante</SelectItem>
-                      <SelectItem value="diu">DIU</SelectItem>
-                      <SelectItem value="preservativo">Preservativo</SelectItem>
-                      <SelectItem value="lam">LAM (Método da Amenorreia Lactacional)</SelectItem>
+                      {bloodGroups.map((g) => (
+                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="md:col-span-2">
-                  <Label>Observações</Label>
-                  <Textarea value={posParto.observacoes} onChange={(e) => updatePosParto("observacoes", e.target.value)} placeholder="Estado emocional, complicações, necessidades..." />
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Morada de Residência</Label>
+                  <Input 
+                    value={gestante.endereco} 
+                    onChange={(e) => updateGestante("endereco", e.target.value)} 
+                    placeholder="Bairro, Rua, Município, Província" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Telefone Pessoal</Label>
+                  <Input 
+                    value={gestante.contacto} 
+                    onChange={(e) => updateGestante("contacto", e.target.value)} 
+                    placeholder="+244" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Nome do Acompanhante / Familiar</Label>
+                  <Input 
+                    value={gestante.nomeAcompanhante} 
+                    onChange={(e) => updateGestante("nomeAcompanhante", e.target.value)} 
+                    placeholder="Grau de parentesco" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Telefone de Emergência</Label>
+                  <Input 
+                    value={gestante.contactoEmergencia} 
+                    onChange={(e) => updateGestante("contactoEmergencia", e.target.value)} 
+                    placeholder="+244" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 border-[#DC2626]/30 focus-visible:ring-[#DC2626]" 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
 
-            <Card className="border-purple-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-purple-700">Direitos da Mamã em Angola</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* ═══ 2. HISTÓRICO DE SAÚDE ═══ */}
+        <TabsContent value="historico" className="mt-0">
+          <div className="gov-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-neutral-700" />
+                <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Antecedentes Clínicos e Obstétricos</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-4 p-4 bg-neutral-50 rounded border border-neutral-200 flex items-center gap-6">
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Histórico de Gravidez Prévia</Label>
+                    <RadioGroup 
+                      value={historico.jaEstiveGravida} 
+                      onValueChange={(v) => updateHistorico("jaEstiveGravida", v)} 
+                      className="flex gap-6 mt-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="sim" id="gravida-sim" className="border-neutral-400 text-[#0A5C75]" />
+                        <Label htmlFor="gravida-sim" className="font-bold text-neutral-700">Sim</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="nao" id="gravida-nao" className="border-neutral-400 text-[#0A5C75]" />
+                        <Label htmlFor="gravida-nao" className="font-bold text-neutral-700">Não (Primigesta)</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Número de Gestações</Label>
+                  <Input 
+                    type="number" 
+                    value={historico.quantasGestacoes} 
+                    onChange={(e) => updateHistorico("quantasGestacoes", e.target.value)} 
+                    placeholder="0" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Partos Anteriores</Label>
+                  <Input 
+                    type="number" 
+                    value={historico.partosAnteriores} 
+                    onChange={(e) => updateHistorico("partosAnteriores", e.target.value)} 
+                    placeholder="0" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Abortos Espontâneos/Induzidos</Label>
+                  <Input 
+                    type="number" 
+                    value={historico.abortos} 
+                    onChange={(e) => updateHistorico("abortos", e.target.value)} 
+                    placeholder="0" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                
+                <div className="lg:col-span-4 border-t border-neutral-200 mt-2 pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Patologias Crónicas Identificadas</Label>
+                    <Textarea 
+                      value={historico.doencasCronicas} 
+                      onChange={(e) => updateHistorico("doencasCronicas", e.target.value)} 
+                      placeholder="Hipertensão, diabetes gestacional, malária, VIH, etc." 
+                      className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 resize-none h-24" 
+                    />
+                  </div>
+                  <div className="space-y-6">
+                    <div>
+                      <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Alergias Medicamentosas / Outras</Label>
+                      <Input 
+                        value={historico.alergias} 
+                        onChange={(e) => updateHistorico("alergias", e.target.value)} 
+                        placeholder="Registe qualquer alergia conhecida" 
+                        className="bg-white border-[#DC2626]/30 focus-visible:ring-[#DC2626] shadow-sm mt-1" 
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Medicação Contínua</Label>
+                      <Input 
+                        value={historico.usoMedicamentos} 
+                        onChange={(e) => updateHistorico("usoMedicamentos", e.target.value)} 
+                        placeholder="Fármacos de uso regular" 
+                        className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 3. INÍCIO DA GRAVIDEZ ═══ */}
+        <TabsContent value="gravidez" className="mt-0">
+          <div className="gov-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-pink-200 bg-pink-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-pink-600 fill-pink-600" />
+                <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Cronologia da Gestação Atual</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="p-4 bg-neutral-50 border border-neutral-200 rounded">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">DUM (Data da Última Menstruação)</Label>
+                  <Input 
+                    type="date" 
+                    value={gravidez.dataUltimaMenstruacao} 
+                    onChange={(e) => updateGravidez("dataUltimaMenstruacao", e.target.value)} 
+                    className="bg-white border-neutral-300 focus-visible:ring-pink-600 shadow-sm mt-2 font-mono" 
+                  />
+                  <p className="text-[10px] text-neutral-500 mt-2">Referência base para cálculo da idade gestacional.</p>
+                </div>
+                
+                <div className="p-4 bg-pink-50/50 border border-pink-200 rounded">
+                  <Label className="text-xs font-bold text-pink-800 uppercase tracking-wider">DPP (Data Provável do Parto)</Label>
+                  <Input 
+                    type="date" 
+                    value={gravidez.dataProvavelParto} 
+                    onChange={(e) => updateGravidez("dataProvavelParto", e.target.value)} 
+                    className="bg-white border-pink-300 focus-visible:ring-pink-600 shadow-sm mt-2 font-mono" 
+                  />
+                  <p className="text-[10px] text-pink-700 mt-2">Estimativa clínica padrão de 40 semanas.</p>
+                </div>
+                
+                <div className="p-4 bg-neutral-50 border border-neutral-200 rounded lg:col-span-1 md:col-span-2">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Tipologia da Gravidez</Label>
+                  <RadioGroup 
+                    value={gravidez.tipoGravidez} 
+                    onValueChange={(v) => updateGravidez("tipoGravidez", v)} 
+                    className="flex flex-wrap gap-6 mt-4"
+                  >
+                    <div className="flex items-center gap-2 bg-white px-3 py-2 border border-neutral-200 rounded shadow-sm">
+                      <RadioGroupItem value="unica" id="gravidez-unica" className="border-neutral-400 text-pink-600" />
+                      <Label htmlFor="gravidez-unica" className="font-bold text-neutral-700">Feto Único</Label>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white px-3 py-2 border border-neutral-200 rounded shadow-sm">
+                      <RadioGroupItem value="gemeos" id="gravidez-gemeos" className="border-neutral-400 text-pink-600" />
+                      <Label htmlFor="gravidez-gemeos" className="font-bold text-neutral-700">Múltipla (Gémeos ou mais)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 4. CONSULTAS PRÉ-NATAIS ═══ */}
+        <TabsContent value="consultas" className="mt-0">
+          <div className="gov-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-[#0A5C75]" />
+                <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Monitorização Clínica Pré-Natal</h2>
+              </div>
+              <Button onClick={addConsulta} className="h-8 text-xs font-bold bg-[#0A5C75] hover:bg-[#0A5C75]/90 text-white shadow-sm gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Registar Nova Consulta
+              </Button>
+            </div>
+            <div className="p-0">
+              {consultas.length === 0 ? (
+                <div className="text-center py-12 bg-white">
+                  <Calendar className="h-12 w-12 text-neutral-200 mx-auto mb-3" />
+                  <p className="text-neutral-500 font-medium">Nenhuma consulta registada no processo clínico.</p>
+                  <p className="text-xs text-neutral-400 mt-1">Utilize o botão acima para iniciar o registo de acompanhamento.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto w-full">
+                  <table className="gov-table w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Data de Consulta</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Idade Gestacional</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Peso Corporal</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Tensão Arterial</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Anotações Clínicas</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200 bg-white">
+                      {consultas.map((c) => (
+                        <tr key={c.id} className="hover:bg-neutral-50 transition-colors">
+                          <td className="px-4 py-2">
+                            <Input 
+                              type="date" 
+                              value={c.date} 
+                              onChange={(e) => updateConsulta(c.id, "date", e.target.value)} 
+                              className="h-9 w-[140px] text-xs font-mono bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" 
+                            />
+                          </td>
+                          <td className="px-4 py-2">
+                            <Input 
+                              value={c.gestationalAge} 
+                              onChange={(e) => updateConsulta(c.id, "gestationalAge", e.target.value)} 
+                              placeholder="Ex: 12 sem" 
+                              className="h-9 w-28 text-xs bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" 
+                            />
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="relative">
+                              <Input 
+                                value={c.weight} 
+                                onChange={(e) => updateConsulta(c.id, "weight", e.target.value)} 
+                                placeholder="00.0" 
+                                className="h-9 w-24 text-xs pr-7 bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" 
+                              />
+                              <span className="absolute right-3 top-2.5 text-[10px] font-bold text-neutral-400">kg</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2">
+                            <Input 
+                              value={c.bloodPressure} 
+                              onChange={(e) => updateConsulta(c.id, "bloodPressure", e.target.value)} 
+                              placeholder="120/80" 
+                              className="h-9 w-28 text-xs font-mono bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" 
+                            />
+                          </td>
+                          <td className="px-4 py-2 w-full">
+                            <Input 
+                              value={c.observations} 
+                              onChange={(e) => updateConsulta(c.id, "observations", e.target.value)} 
+                              placeholder="Resultado ecografia, análises..." 
+                              className="h-9 w-full min-w-[200px] text-xs bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" 
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <Button variant="ghost" size="icon" onClick={() => removeConsulta(c.id)} className="h-8 w-8 text-[#DC2626] hover:bg-[#DC2626]/10 hover:text-[#DC2626]">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="p-4 bg-neutral-100 border-t border-neutral-200">
+              <div className="flex items-start gap-3">
+                <InfoIcon className="h-5 w-5 text-[#0A5C75] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-[#0A5C75] uppercase tracking-wider mb-1">Frequência Normativa</p>
+                  <p className="text-xs text-neutral-600 font-medium leading-relaxed">
+                    A OMS e o MINSA recomendam: 1ª consulta até as 12 semanas; 2ª às 20 semanas; 3ª às 26 semanas; 4ª às 30 semanas; 5ª às 34 semanas; 6ª às 38 semanas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 5. ALIMENTAÇÃO ═══ */}
+        <TabsContent value="alimentacao" className="mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="gov-card overflow-hidden h-full flex flex-col">
+              <div className="px-6 py-4 border-b border-[#059669]/20 bg-[#059669]/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Apple className="h-5 w-5 text-[#059669]" />
+                  <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Plano Nutricional Recomendado</h2>
+                </div>
+              </div>
+              <div className="p-6 flex-1 bg-white">
+                <p className="text-sm text-neutral-600 mb-6 font-medium">Dietética baseada em produtos nacionais para fortalecimento do sistema imunitário materno-fetal.</p>
+                <ul className="space-y-4 text-sm divide-y divide-neutral-100">
                   {[
-                    { title: "Direito ao Atendimento", desc: "Toda grávida tem direito a ser atendida nos serviços de saúde pública" },
-                    { title: "Direito à Informação", desc: "Receber informação clara sobre a sua saúde e a do bebé" },
-                    { title: "Direito ao Acompanhamento", desc: "Ter acompanhante durante o parto e internamento" },
+                    { name: "Funje (preparação adequada)", desc: "Elevada carga de carboidratos, essencial para manutenção energética" },
+                    { name: "Pescado Nacional", desc: "Fornecimento de proteína estrutural e ómega-3 para desenvolvimento neural" },
+                    { name: "Leguminosas (Feijão local)", desc: "Fonte crítica de ferro e proteína vegetal para prevenção de anemia" },
+                    { name: "Banana-pão / Banana da Terra", desc: "Elevado teor de potássio, mitigação de cãibras" },
+                    { name: "Mandioqueira e Tubérculos", desc: "Base calórica segura (se confeccionada adequadamente)" },
+                    { name: "Folhas Verdes Escuras (Gimboa)", desc: "Riqueza em ácido fólico natural e ferro biodisponível" },
+                    { name: "Ginguba (Amendoim nativo)", desc: "Lípidos essenciais saudáveis" },
+                  ].map((item) => (
+                    <li key={item.name} className="flex items-start gap-3 pt-3 first:pt-0">
+                      <div className="h-5 w-5 rounded-full bg-[#059669]/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[#059669] text-xs font-bold">✓</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-neutral-900">{item.name}</span>
+                        <p className="text-neutral-500 text-xs mt-0.5">{item.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="gov-card overflow-hidden h-full flex flex-col">
+              <div className="px-6 py-4 border-b border-[#DC2626]/20 bg-[#DC2626]/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-[#DC2626]" />
+                  <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Restrições Clínicas</h2>
+                </div>
+              </div>
+              <div className="p-6 flex-1 bg-white flex flex-col">
+                <ul className="space-y-4 text-sm divide-y divide-neutral-100 mb-8">
+                  {[
+                    { name: "Consumo de Álcool", desc: "Risco severo de Síndrome Alcoólica Fetal e malformações" },
+                    { name: "Tabagismo", desc: "Hipóxia fetal, restrição de crescimento e risco de prematuridade" },
+                    { name: "Automedicação", desc: "Teratogenicidade: risco de anomalias congénitas severas" },
+                    { name: "Alimentos Crus ou Mal Passados", desc: "Risco de Toxoplasmose, Listeriose e infecções gastrointestinais" },
+                    { name: "Sódio em Excesso", desc: "Fator desencadeante para pré-eclâmpsia e edema agudo" },
+                  ].map((item) => (
+                    <li key={item.name} className="flex items-start gap-3 pt-3 first:pt-0">
+                      <div className="h-5 w-5 rounded-full bg-[#DC2626]/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[#DC2626] text-xs font-bold">✗</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-neutral-900">{item.name}</span>
+                        <p className="text-[#DC2626]/80 text-xs mt-0.5">{item.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-auto p-4 bg-[#0A5C75]/5 border border-[#0A5C75]/20 rounded-md">
+                  <h4 className="text-xs font-bold text-[#0A5C75] uppercase tracking-wider mb-3">Protocolo de Higiene Materna</h4>
+                  <ul className="text-xs text-neutral-700 space-y-2 font-medium">
+                    <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75]" /> Hidratação contínua (Mín. 2.5L de água potável)</li>
+                    <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75]" /> Repouso mínimo de 8 horas ininterruptas</li>
+                    <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75]" /> Restrição total de cargas físicas pesadas</li>
+                    <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75]" /> Higienização regular em zonas de risco endémico</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 6. SINAIS DE ALERTA ═══ */}
+        <TabsContent value="alertas" className="mt-0">
+          <div className="gov-card overflow-hidden border-[#DC2626]/30">
+            <div className="px-6 py-4 border-b border-[#DC2626]/20 bg-[#DC2626] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <h2 className="text-base font-bold uppercase tracking-wide">Protocolo de Emergência Obstétrica</h2>
+              </div>
+            </div>
+            <div className="p-6 bg-white">
+              <p className="text-sm font-bold text-neutral-700 mb-6 uppercase tracking-wider">Acionamento imediato da unidade sanitária caso ocorram:</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { signal: "Hemorragia Vaginal", desc: "Qualquer perda hemática vaginal anómala", severity: "critico" },
+                  { signal: "Dor Abdominal Severa", desc: "Dor pélvica aguda e persistente", severity: "critico" },
+                  { signal: "Pirexia Sustentada", desc: "Temperatura corporal > 38°C persistente", severity: "critico" },
+                  { signal: "Edema Agudo", desc: "Inchaço súbito na face, mãos e membros inferiores", severity: "alto" },
+                  { signal: "Acinésia Fetal", desc: "Ausência de movimentos fetais por > 12h (>28 semanas)", severity: "critico" },
+                  { signal: "Cefaleia Refratária", desc: "Dores de cabeça intensas sem resposta a analgésicos", severity: "alto" },
+                  { signal: "Distúrbios Visuais", desc: "Escotomas (manchas visuais) ou visão turva", severity: "alto" },
+                  { signal: "Amniorrexe Prematura", desc: "Perda de líquido amniótico de forma espontânea", severity: "critico" },
+                  { signal: "Hiperémese Gravídica", desc: "Vómitos incontroláveis com risco de desidratação", severity: "medio" },
+                  { signal: "Disúria", desc: "Ardor intenso à micção associado a infeção", severity: "medio" },
+                ].map((item) => (
+                  <div
+                    key={item.signal}
+                    className={`p-4 rounded border-l-4 shadow-sm ${
+                      item.severity === "critico"
+                        ? "bg-white border-l-[#DC2626] border-y-neutral-200 border-r-neutral-200"
+                        : item.severity === "alto"
+                        ? "bg-white border-l-[#D97706] border-y-neutral-200 border-r-neutral-200"
+                        : "bg-white border-l-[#0A5C75] border-y-neutral-200 border-r-neutral-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-sm ${
+                          item.severity === "critico"
+                            ? "bg-[#DC2626]/10 text-[#DC2626]"
+                            : item.severity === "alto"
+                            ? "bg-[#D97706]/10 text-[#D97706]"
+                            : "bg-[#0A5C75]/10 text-[#0A5C75]"
+                        }`}
+                      >
+                        Nível de Risco: {item.severity === "critico" ? "CRÍTICO" : item.severity === "alto" ? "ALTO" : "MÉDIO"}
+                      </span>
+                    </div>
+                    <p className="font-bold text-neutral-900 text-sm mb-1">{item.signal}</p>
+                    <p className="text-xs font-medium text-neutral-500">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 p-5 bg-[#DC2626]/10 border border-[#DC2626]/20 rounded text-center">
+                <p className="text-[#DC2626] font-black text-sm uppercase tracking-wide">
+                  Linha Nacional de Emergência Médica (INEMA): Ligue 111
+                </p>
+                <p className="text-xs text-[#DC2626]/80 mt-1 font-bold">Encaminhamento Imediato para Banco de Urgência Materno-Fetal</p>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 7. VACINAS DA GESTANTE ═══ */}
+        <TabsContent value="vacinas" className="mt-0">
+          <div className="gov-card overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Syringe className="h-5 w-5 text-[#0A5C75]" />
+                <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Profilaxia Imunológica da Gestante</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 bg-neutral-50 border border-neutral-200 rounded">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Anti-Tetânica (VAT) — 1ª Dose</Label>
+                  <Input 
+                    type="date" 
+                    value={vacinasGestante.tetano1} 
+                    onChange={(e) => setVacinasGestante((p) => ({ ...p, tetano1: e.target.value }))} 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-2 font-mono" 
+                  />
+                </div>
+                <div className="p-4 bg-neutral-50 border border-neutral-200 rounded">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Anti-Tetânica (VAT) — 2ª Dose</Label>
+                  <Input 
+                    type="date" 
+                    value={vacinasGestante.tetano2} 
+                    onChange={(e) => setVacinasGestante((p) => ({ ...p, tetano2: e.target.value }))} 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-2 font-mono" 
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Esquema Vacinal Adicional</Label>
+                  <Textarea 
+                    value={vacinasGestante.outras} 
+                    onChange={(e) => setVacinasGestante((p) => ({ ...p, outras: e.target.value }))} 
+                    placeholder="Registo oficial de administração de COVID-19, Hepatite B, Gripe Sazonal..." 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-2 resize-none" 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="gov-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#059669]/20 bg-[#059669]/5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-[#059669]" />
+                <h2 className="text-base font-bold text-[#059669] uppercase tracking-wide">PAV — Programa Alargado de Vacinação Infantil</h2>
+              </div>
+            </div>
+            <div className="p-0">
+              <table className="gov-table w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 font-bold text-neutral-700 uppercase text-[11px] tracking-wider text-left bg-white border-r border-neutral-200 w-1/4">Fase etária</th>
+                    <th className="px-6 py-3 font-bold text-neutral-700 uppercase text-[11px] tracking-wider text-left bg-white w-1/2">Composição da Vacina</th>
+                    <th className="px-6 py-3 font-bold text-neutral-700 uppercase text-[11px] tracking-wider text-left bg-neutral-50 border-l border-neutral-200">Data de Administração</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 bg-white">
+                  {[
+                    { age: "Ao Nascer", vaccine: "BCG + VPO-0 + Hepatite B" },
+                    { age: "6 Semanas", vaccine: "Penta 1 + VPO-1 + Pneumo 1 + Rotavírus 1" },
+                    { age: "10 Semanas", vaccine: "Penta 2 + VPO-2 + Pneumo 2 + Rotavírus 2" },
+                    { age: "14 Semanas", vaccine: "Penta 3 + VPO-3 + Pneumo 3 + VPI" },
+                    { age: "9 Meses", vaccine: "Sarampo + Febre Amarela + Vitamina A" },
+                    { age: "15 Meses", vaccine: "Reforço Sarampo (2ª Dose)" },
+                  ].map((row) => (
+                    <tr key={row.age} className="hover:bg-neutral-50">
+                      <td className="px-6 py-3 font-bold text-neutral-900 border-r border-neutral-200">{row.age}</td>
+                      <td className="px-6 py-3 font-medium text-neutral-600">{row.vaccine}</td>
+                      <td className="px-4 py-2 border-l border-neutral-200 bg-neutral-50/50">
+                        <Input type="date" className="h-9 w-full font-mono text-xs border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm bg-white" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 8. PARTO ═══ */}
+        <TabsContent value="parto" className="mt-0">
+          <div className="gov-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-5 w-5 text-neutral-700" />
+                <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Ficha de Registo do Parto</h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Unidade Hospitalar / Local</Label>
+                  <Input 
+                    value={parto.localParto} 
+                    onChange={(e) => updateParto("localParto", e.target.value)} 
+                    placeholder="Denominação oficial da Maternidade/Centro" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Data do Parto</Label>
+                  <Input 
+                    type="date" 
+                    value={parto.dataParto} 
+                    onChange={(e) => updateParto("dataParto", e.target.value)} 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 font-mono" 
+                  />
+                </div>
+                
+                <div className="p-4 bg-neutral-50 border border-neutral-200 rounded lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Via de Parto</Label>
+                    <Select value={parto.tipoParto} onValueChange={(v) => updateParto("tipoParto", v)}>
+                      <SelectTrigger className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Eutócico (Normal)</SelectItem>
+                        <SelectItem value="cesariana">Distócico (Cesariana)</SelectItem>
+                        <SelectItem value="forceps">Fórceps / Ventosa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Identificação do Recém-Nascido</Label>
+                    <div className="flex gap-4 mt-1">
+                      <Select value={parto.sexoBebe} onValueChange={(v) => updateParto("sexoBebe", v)}>
+                        <SelectTrigger className="w-1/3 bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm">
+                          <SelectValue placeholder="Sexo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="masculino">M</SelectItem>
+                          <SelectItem value="feminino">F</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input 
+                        value={parto.nomeBebe} 
+                        onChange={(e) => updateParto("nomeBebe", e.target.value)} 
+                        placeholder="Nome (se definido)" 
+                        className="flex-1 bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Peso Ponderal (Gramas)</Label>
+                  <Input 
+                    value={parto.pesoBebe} 
+                    onChange={(e) => updateParto("pesoBebe", e.target.value)} 
+                    placeholder="Ex: 3200" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 font-mono" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Comprimento (cm)</Label>
+                  <Input 
+                    value={parto.alturaBebe} 
+                    onChange={(e) => updateParto("alturaBebe", e.target.value)} 
+                    placeholder="Ex: 49" 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 font-mono" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">APGAR 1'</Label>
+                    <Input 
+                      value={parto.apgar1} 
+                      onChange={(e) => updateParto("apgar1", e.target.value)} 
+                      placeholder="0-10" 
+                      className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 text-center font-bold" 
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">APGAR 5'</Label>
+                    <Input 
+                      value={parto.apgar5} 
+                      onChange={(e) => updateParto("apgar5", e.target.value)} 
+                      placeholder="0-10" 
+                      className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 text-center font-bold" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="lg:col-span-3">
+                  <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Resumo Clínico / Complicações Obstétricas</Label>
+                  <Textarea 
+                    value={parto.observacoesParto} 
+                    onChange={(e) => updateParto("observacoesParto", e.target.value)} 
+                    placeholder="Anotações do bloco operatório, lacerações, hemorragias, reanimação..." 
+                    className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 resize-none h-24" 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 9. BEBÉ - CRESCIMENTO ═══ */}
+        <TabsContent value="bebe" className="mt-0">
+          <div className="gov-card overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Baby className="h-5 w-5 text-[#0A5C75]" />
+                <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Puericultura e Crescimento Infantil</h2>
+              </div>
+              <Button onClick={addCrescimento} className="h-8 text-xs font-bold bg-[#0A5C75] hover:bg-[#0A5C75]/90 text-white shadow-sm gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Adicionar Avaliação
+              </Button>
+            </div>
+            <div className="p-0">
+              {crescimento.length === 0 ? (
+                <div className="text-center py-12 bg-white">
+                  <Baby className="h-12 w-12 text-neutral-200 mx-auto mb-3" />
+                  <p className="text-neutral-500 font-medium">Não há dados biométricos registados.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto w-full">
+                  <table className="gov-table w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Data de Avaliação</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Idade (Meses)</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Peso Corporal</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Estatura</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50">Parecer Clínico</th>
+                        <th className="px-4 py-3 font-bold text-neutral-700 uppercase tracking-wider text-[11px] bg-neutral-100/50 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200 bg-white">
+                      {crescimento.map((c) => (
+                        <tr key={c.id} className="hover:bg-neutral-50 transition-colors">
+                          <td className="px-4 py-2">
+                            <Input type="date" value={c.date} onChange={(e) => updateCrescimento(c.id, "date", e.target.value)} className="h-9 w-[140px] text-xs font-mono bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" />
+                          </td>
+                          <td className="px-4 py-2">
+                            <Input value={c.ageMonths} onChange={(e) => updateCrescimento(c.id, "ageMonths", e.target.value)} placeholder="0" className="h-9 w-20 text-xs text-center bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" />
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="relative">
+                              <Input value={c.weight} onChange={(e) => updateCrescimento(c.id, "weight", e.target.value)} placeholder="00.0" className="h-9 w-24 text-xs pr-7 bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" />
+                              <span className="absolute right-3 top-2.5 text-[10px] font-bold text-neutral-400">kg</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="relative">
+                              <Input value={c.height} onChange={(e) => updateCrescimento(c.id, "height", e.target.value)} placeholder="00" className="h-9 w-24 text-xs pr-7 bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" />
+                              <span className="absolute right-3 top-2.5 text-[10px] font-bold text-neutral-400">cm</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2 w-full">
+                            <Input value={c.observations} onChange={(e) => updateCrescimento(c.id, "observations", e.target.value)} placeholder="Curva de crescimento, reflexos..." className="h-9 w-full min-w-[200px] text-xs bg-white border-neutral-300 focus-visible:ring-[#0A5C75]" />
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <Button variant="ghost" size="icon" onClick={() => removeCrescimento(c.id)} className="h-8 w-8 text-[#DC2626] hover:bg-[#DC2626]/10 hover:text-[#DC2626]">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="gov-card p-5 border-t-4 border-t-pink-500">
+              <h4 className="text-sm font-bold text-neutral-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />
+                Guia de Aleitamento Materno
+              </h4>
+              <ul className="text-xs text-neutral-600 space-y-2.5 font-medium">
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-pink-500 shrink-0 mt-1" /> Aleitamento exclusivo exigido até aos 6 meses.</li>
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-pink-500 shrink-0 mt-1" /> Livre demanda: Oferta sempre que demonstrar fome.</li>
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-pink-500 shrink-0 mt-1" /> Restrição hídrica: Água ou infusões são proibidas no 1º semestre.</li>
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-pink-500 shrink-0 mt-1" /> Introdução Alimentar: Somente após avaliação aos 6 meses.</li>
+              </ul>
+            </div>
+            <div className="gov-card p-5 border-t-4 border-t-[#0A5C75]">
+              <h4 className="text-sm font-bold text-neutral-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-[#0A5C75]" />
+                Cuidados Profiláticos Domiciliares
+              </h4>
+              <ul className="text-xs text-neutral-600 space-y-2.5 font-medium">
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75] shrink-0 mt-1" /> Banho higiénico diário com controlo térmico da água.</li>
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75] shrink-0 mt-1" /> Antissepsia do coto umbilical com Álcool etílico 70%.</li>
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75] shrink-0 mt-1" /> Posição de decúbito dorsal obrigatória para o sono.</li>
+                <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-[#0A5C75] shrink-0 mt-1" /> Proteção vetorial obrigatória (Rede mosquiteira impregnada).</li>
+              </ul>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ═══ 10. PÓS-PARTO ═══ */}
+        <TabsContent value="posparto" className="mt-0">
+          <div className="space-y-6">
+            <div className="gov-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-neutral-700" />
+                  <h2 className="text-base font-bold text-neutral-900 uppercase tracking-wide">Puerpério e Controlo Materno</h2>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Regime de Lactação</Label>
+                    <Select value={posParto.amamentacao} onValueChange={(v) => updatePosParto("amamentacao", v)}>
+                      <SelectTrigger className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="exclusiva">Materno Exclusivo</SelectItem>
+                        <SelectItem value="mista">Aleitamento Misto</SelectItem>
+                        <SelectItem value="artificial">Fórmula Infantil</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Data do Rastreio Puerperal</Label>
+                    <Input 
+                      type="date" 
+                      value={posParto.visitaPosParto} 
+                      onChange={(e) => updatePosParto("visitaPosParto", e.target.value)} 
+                      className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 font-mono" 
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Planeamento Familiar (Método)</Label>
+                    <Select value={posParto.metodoContraceptivo} onValueChange={(v) => updatePosParto("metodoContraceptivo", v)}>
+                      <SelectTrigger className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1">
+                        <SelectValue placeholder="Seleccionar prescrição" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Sem cobertura atual</SelectItem>
+                        <SelectItem value="pilula">Contracetivo Oral</SelectItem>
+                        <SelectItem value="injectavel">Progestativo Injetável (Depo)</SelectItem>
+                        <SelectItem value="implante">Implante Subdérmico</SelectItem>
+                        <SelectItem value="diu">Dispositivo Intrauterino (DIU)</SelectItem>
+                        <SelectItem value="preservativo">Método de Barreira</SelectItem>
+                        <SelectItem value="lam">LAM (Aleitamento Exclusivo)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <Label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Despacho Clínico Pós-Parto</Label>
+                    <Textarea 
+                      value={posParto.observacoes} 
+                      onChange={(e) => updatePosParto("observacoes", e.target.value)} 
+                      placeholder="Registo de involução uterina, rastreio de depressão pós-parto, sinais de infeção..." 
+                      className="bg-white border-neutral-300 focus-visible:ring-[#0A5C75] shadow-sm mt-1 resize-none h-24" 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="gov-card border-none bg-neutral-900 text-white overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-6 text-neutral-400">Garantias Institucionais do Cidadão</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[
+                    { title: "Universalidade de Acesso", desc: "Acesso integral, isento de custos, à rede de saúde materno-infantil em todo o território nacional." },
+                    { title: "Consentimento e Informação", desc: "Dever clínico de informar a parturiente sobre toda a terapêutica e riscos inerentes." },
+                    { title: "Dignidade Humana", desc: "Preservação da privacidade e garantia de assistência médica qualificada no pré e pós-parto." },
                   ].map((d) => (
-                    <div key={d.title} className="p-3 bg-purple-50 rounded-lg">
-                      <p className="font-semibold text-sm text-purple-700">{d.title}</p>
-                      <p className="text-xs text-purple-600 mt-1">{d.desc}</p>
+                    <div key={d.title} className="relative">
+                      <div className="h-0.5 w-12 bg-[#0A5C75] mb-3" />
+                      <p className="font-bold text-sm text-white">{d.title}</p>
+                      <p className="text-xs text-neutral-400 mt-2 leading-relaxed">{d.desc}</p>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="p-4 bg-gradient-to-r from-pink-100 to-rose-100 rounded-lg text-center">
-              <p className="text-pink-800 font-medium text-sm">
-                💝 Mamã, cuidar de si é cuidar do seu bebé. Este caderno é seu companheiro de jornada.
-              </p>
-              <p className="text-pink-600 text-xs mt-1">Leve sempre consigo nas consultas e partilhe com quem cuida de si.</p>
+              </div>
             </div>
           </div>
         </TabsContent>
       </Tabs>
     </div>
   );
+}
+
+function InfoIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" x2="12" y1="8" y2="12" />
+      <line x1="12" x2="12.01" y1="16" y2="16" />
+    </svg>
+  )
 }

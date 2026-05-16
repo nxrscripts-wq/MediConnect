@@ -30,6 +30,18 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
+  // If role-gated and profile hasn't loaded yet, keep showing loader
+  if (allowedRoles && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse">A verificar permissões...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     // 403 Forbidden page inline
     return (

@@ -23,73 +23,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Initial session check
-    async function getInitialSession() {
+    let cancelled = false;
+
+    async function loadProfile(userId: string, currentSession: Session) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (cancelled) return;
+
+        if (error) {
+          console.warn('[AuthContext] Error fetching profile:', error.message);
+          // Fallback using auth metadata
+          setProfile({
+            id: userId,
+            email: currentSession.user.email ?? '',
+            full_name: currentSession.user.user_metadata?.full_name || currentSession.user.email || 'Utilizador',
+            role: (currentSession.user.user_metadata?.role as any) || 'enfermeiro',
+            health_unit_id: null,
+            health_unit_name: 'Unidade não definida',
+            is_active: true,
+            created_at: new Date().toISOString()
+          });
+        } else {
+          setProfile(data);
         }
-      } catch (error) {
-        console.error('Error fetching initial session:', error);
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error('[AuthContext] Profile fetch error:', err);
       }
     }
 
-    getInitialSession();
+    // Use onAuthStateChange as the single source of truth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (cancelled) return;
 
-    // 2. Auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+
+      if (currentSession?.user) {
+        await loadProfile(currentSession.user.id, currentSession);
       } else {
         setProfile(null);
       }
-      setLoading(false);
+
+      if (!cancelled) {
+        setLoading(false);
+      }
     });
 
+    // Fallback: if onAuthStateChange never fires within 5s, force loading off
+    const failsafe = setTimeout(() => {
+      if (!cancelled) {
+        console.warn('[AuthContext] Failsafe: forcing loading off');
+        setLoading(false);
+      }
+    }, 5000);
+
     return () => {
+      cancelled = true;
+      clearTimeout(failsafe);
       subscription.unsubscribe();
     };
   }, []);
 
-  async function fetchProfile(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.warn('Error fetching user profile:', error.message);
-        // Fallback for demo users or incomplete setups
-        if (session?.user) {
-           setProfile({
-             id: session.user.id,
-             email: session.user.email ?? '',
-             full_name: session.user.user_metadata?.full_name || session.user.email || 'Utilizador',
-             role: (session.user.user_metadata?.role as any) || 'enfermeiro',
-             health_unit_id: null,
-             health_unit_name: 'Unidade não definida',
-             is_active: true,
-             created_at: new Date().toISOString()
-           });
-        }
-      } else {
-        setProfile(data);
-      }
-    } catch (err) {
-      console.error('Profile fetch unexpected error:', err);
-    }
-  }
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({

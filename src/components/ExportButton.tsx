@@ -18,13 +18,14 @@ import { useExport } from '@/hooks/useExport';
 import type { ExportFormat, ExportOptions } from '@/types/export';
 
 interface ExportButtonProps {
-  options: Omit<ExportOptions, 'format'>;
+  options?: Omit<ExportOptions, 'format'>;
   formats?: ExportFormat[];
   label?: string;
   size?: 'default' | 'sm' | 'lg' | 'icon';
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   disabled?: boolean;
   className?: string;
+  onExport?: (format: ExportFormat) => void;
 }
 
 export function ExportButton({
@@ -34,14 +35,19 @@ export function ExportButton({
   size = 'default',
   variant = 'outline',
   disabled = false,
-  className
+  className,
+  onExport
 }: ExportButtonProps) {
   const { exportWithFeedback, isExporting } = useExport();
   const [open, setOpen] = useState(false);
 
   const handleExport = (format: ExportFormat) => {
     setOpen(false);
-    exportWithFeedback({ ...options, format });
+    if (onExport) {
+      onExport(format);
+    } else if (options) {
+      exportWithFeedback({ ...options, format });
+    }
   };
 
   const getFormatIcon = (format: ExportFormat) => {
@@ -64,7 +70,7 @@ export function ExportButton({
     }
   };
 
-  const isDisabled = disabled || isExporting || (!options.data || options.data.length === 0);
+  const isDisabled = disabled || isExporting || (!onExport && (!options?.data || options.data.length === 0));
 
   if (formats.length === 1) {
     return (

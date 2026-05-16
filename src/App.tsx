@@ -21,6 +21,7 @@ import EpidemiologicalBulletin from "@/pages/EpidemiologicalBulletin";
 import MaternityNotebook from "@/pages/MaternityNotebook";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
+import Admin from "@/pages/Admin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,6 +97,14 @@ const App = () => (
               />
 
               {/* Roles: Admin only */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <Admin />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/configuracoes"
                 element={
