@@ -21,7 +21,7 @@ export async function getPatients(filters: PatientFilters): Promise<PatientListR
         .from('patients')
         .select(`
       *,
-      health_units (
+      health_units!patients_registered_at_unit_id_fkey (
         id,
         name,
         municipality,
@@ -79,7 +79,7 @@ export async function getPatientById(id: string): Promise<PatientWithUnit> {
         .from('patients')
         .select(`
       *,
-      health_units (
+      health_units!patients_registered_at_unit_id_fkey (
         id, name, municipality, province
       )
     `)
@@ -101,7 +101,7 @@ export async function getPatientByCode(code: string): Promise<PatientWithUnit> {
         .from('patients')
         .select(`
       *,
-      health_units (
+      health_units!patients_registered_at_unit_id_fkey (
         id, name, municipality, province
       )
     `)

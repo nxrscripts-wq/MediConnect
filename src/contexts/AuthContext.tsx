@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: currentSession.user.email ?? '',
             full_name: currentSession.user.user_metadata?.full_name || currentSession.user.email || 'Utilizador',
             role: (currentSession.user.user_metadata?.role as any) || 'enfermeiro',
-            health_unit_id: null,
+            health_unit_id: currentSession.user.user_metadata?.health_unit_id || null,
             health_unit_name: 'Unidade não definida',
             is_active: true,
             created_at: new Date().toISOString()
@@ -56,7 +56,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Use onAuthStateChange as the single source of truth
+    // 1) Bootstrap: eagerly load session
+    async function bootstrap() {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (cancelled) return;
+
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        if (currentSession?.user) {
+          await loadProfile(currentSession.user.id, currentSession);
+        }
+      } catch (err) {
+        console.error('[AuthContext] Bootstrap error:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    bootstrap();
+
+    // 2) Listen for subsequent auth changes (token refresh, sign-in/out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (cancelled) return;
 
@@ -64,7 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
-        await loadProfile(currentSession.user.id, currentSession);
+        // Use setTimeout to avoid Supabase deadlocks with simultaneous requests
+        setTimeout(() => {
+          if (!cancelled) loadProfile(currentSession.user.id, currentSession);
+        }, 0);
       } else {
         setProfile(null);
       }
@@ -74,17 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Fallback: if onAuthStateChange never fires within 5s, force loading off
-    const failsafe = setTimeout(() => {
-      if (!cancelled) {
-        console.warn('[AuthContext] Failsafe: forcing loading off');
-        setLoading(false);
-      }
-    }, 5000);
-
     return () => {
       cancelled = true;
-      clearTimeout(failsafe);
       subscription.unsubscribe();
     };
   }, []);

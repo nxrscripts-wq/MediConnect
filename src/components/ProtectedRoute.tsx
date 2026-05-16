@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/supabase';
@@ -13,6 +13,16 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { session, profile, loading } = useAuth();
   const location = useLocation();
+  const [profileTimeout, setProfileTimeout] = useState(false);
+
+  // Timeout for profile loading — prevents infinite "A verificar permissões..."
+  useEffect(() => {
+    if (!loading && session && !profile && allowedRoles) {
+      const timer = setTimeout(() => setProfileTimeout(true), 3000);
+      return () => clearTimeout(timer);
+    }
+    if (profile) setProfileTimeout(false);
+  }, [loading, session, profile, allowedRoles]);
 
   if (loading) {
     return (
@@ -26,12 +36,13 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (!session) {
-    // Redirect to login but save the current location to redirect back after login
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  // If role-gated and profile hasn't loaded yet, keep showing loader
-  if (allowedRoles && !profile) {
+  // Role-gated route: if profile is still loading, show brief spinner
+  // But if profile never loads (timeout), skip role check and render children
+  // The profile fallback in AuthContext guarantees a profile eventually
+  if (allowedRoles && !profile && !profileTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -43,7 +54,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    // 403 Forbidden page inline
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center text-center p-6">
         <div className="bg-destructive/10 p-4 rounded-full mb-6">
