@@ -19,6 +19,7 @@ const getBreadcrumb = (pathname: string) => {
   if (pathname === '/informacao-mensal') return ['Administração', 'Info. Mensal'];
   if (pathname === '/configuracoes') return ['Administração', 'Configurações'];
   if (pathname === '/caderno-maternidade') return ['Maternidade'];
+  if (pathname === '/sanidade-digital') return ['Clínica', 'Sanidade Digital'];
   if (pathname === '/painel-governamental') return ['Governamental', 'Painel'];
   if (pathname === '/boletim-epidemiologico') return ['Governamental', 'Boletim Epid.'];
   return ['Página'];

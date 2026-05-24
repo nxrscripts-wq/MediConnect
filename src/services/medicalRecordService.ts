@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { MedicalRecord, ConsultationDetails } from '@/types/medicalRecord'
+import { MedicalRecord, ConsultationDetails } from '@/types/records'
 
 /**
  * Fetch patient clinical history with full details

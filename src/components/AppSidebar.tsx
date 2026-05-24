@@ -18,6 +18,11 @@ import {
   Building2,
   ShieldCheck,
   UserCog,
+  Archive,
+  BedDouble,
+  FileBarChart2,
+  Network,
+  Users2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -66,6 +71,12 @@ const menuSections: MenuSection[] = [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
       { title: "Pacientes", url: "/pacientes", icon: Users },
       { title: "Agendamento", url: "/agendamento", icon: CalendarDays },
+      {
+        title: "Teleconsulta",
+        url: "/teleconsulta",
+        icon: Network,
+        allowedRoles: ["medico", "enfermeiro", "gestor", "admin"],
+      },
     ],
   },
   {
@@ -73,6 +84,13 @@ const menuSections: MenuSection[] = [
     items: [
       { title: "Prontuários", url: "/prontuarios", icon: FileText },
       { title: "Maternidade", url: "/caderno-maternidade", icon: Heart },
+      { title: "Sanidade Digital", url: "/sanidade-digital", icon: ShieldCheck },
+      {
+        title: "Internamentos",
+        url: "/internamentos",
+        icon: BedDouble,
+        allowedRoles: ["medico", "enfermeiro", "gestor", "admin"],
+      },
     ],
   },
   {
@@ -93,6 +111,12 @@ const menuSections: MenuSection[] = [
         title: "Boletim Epid.",
         url: "/boletim-epidemiologico",
         icon: Activity,
+        allowedRoles: ["medico", "gestor", "admin"],
+      },
+      {
+        title: "Mortalidade",
+        url: "/mortalidade",
+        icon: FileBarChart2,
         allowedRoles: ["medico", "gestor", "admin"],
       },
       {
@@ -119,10 +143,22 @@ const menuSections: MenuSection[] = [
         allowedRoles: ["gestor", "admin"],
       },
       {
+        title: "Recursos Humanos",
+        url: "/recursos-humanos",
+        icon: Users2,
+        allowedRoles: ["gestor", "admin"],
+      },
+      {
         title: "Configurações",
         url: "/configuracoes",
         icon: Settings,
         allowedRoles: ["admin"],
+      },
+      {
+        title: "Backup & Compliance",
+        url: "/backup",
+        icon: Archive,
+        allowedRoles: ["admin", "gestor"],
       },
     ],
   },

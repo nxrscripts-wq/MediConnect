@@ -62,8 +62,14 @@ export async function getPatients(filters: PatientFilters): Promise<PatientListR
 
     const total = count ?? 0
 
+    const mappedData = (data || []).map(p => ({
+        ...p,
+        allergies: (p as any).allergies || [],
+        chronic_conditions: (p as any).chronic_conditions || []
+    }))
+
     return {
-        data: data as PatientWithUnit[],
+        data: mappedData as PatientWithUnit[],
         total,
         page,
         page_size,
@@ -90,7 +96,13 @@ export async function getPatientById(id: string): Promise<PatientWithUnit> {
         throw new Error('Paciente não encontrado')
     }
 
-    return data as PatientWithUnit
+    const patient = {
+        ...data,
+        allergies: (data as any).allergies || [],
+        chronic_conditions: (data as any).chronic_conditions || []
+    }
+
+    return patient as PatientWithUnit
 }
 
 /**
@@ -112,7 +124,13 @@ export async function getPatientByCode(code: string): Promise<PatientWithUnit> {
         throw new Error('Paciente não encontrado')
     }
 
-    return data as PatientWithUnit
+    const patient = {
+        ...data,
+        allergies: (data as any).allergies || [],
+        chronic_conditions: (data as any).chronic_conditions || []
+    }
+
+    return patient as PatientWithUnit
 }
 
 /**

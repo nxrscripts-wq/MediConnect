@@ -648,11 +648,8 @@ export default function Login() {
 
           <div className="mt-10 pt-6 border-t border-border/50 flex flex-col items-center gap-4">
             {mode === 'login' && (
-              <p className="text-sm text-muted-foreground">
-                Não tem conta?{' '}
-                <button type="button" onClick={() => changeMode('register')} className="text-primary font-semibold hover:underline">
-                  Solicitar acesso
-                </button>
+              <p className="text-center text-xs text-muted-foreground">
+                Para criar uma conta, contacte o administrador do sistema.
               </p>
             )}
             {mode === 'forgot' && !forgotSuccess && (

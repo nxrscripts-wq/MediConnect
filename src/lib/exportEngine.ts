@@ -1,3 +1,4 @@
+// html2canvas removido — não utilizado (era 198KB no bundle)
 import { jsPDF } from 'jspdf';
 import autoTable, { RowInput } from 'jspdf-autotable';
 import * as XLSX from 'xlsx';

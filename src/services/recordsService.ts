@@ -7,7 +7,7 @@ export async function getRecentRecords(
 ): Promise<MedicalRecord[]> {
   const { data, error } = await supabase
     .from('medical_records')
-    .select('*, patients(id, full_name, patient_code), user_profiles(full_name)')
+    .select('*, patients(id, full_name, patient_code), user_profiles!attended_by(full_name)')
     .eq('health_unit_id', healthUnitId)
     .order('occurred_at', { ascending: false })
     .limit(limit)
@@ -23,7 +23,7 @@ export async function getRecentRecords(
 export async function getPatientRecords(patientId: string): Promise<MedicalRecord[]> {
   const { data, error } = await supabase
     .from('medical_records')
-    .select('*, user_profiles(full_name)')
+    .select('*, user_profiles!attended_by(full_name)')
     .eq('patient_id', patientId)
     .order('occurred_at', { ascending: false })
 

@@ -14,7 +14,9 @@ import {
   User,
   HeartPulse,
   Activity,
-  Droplet
+  Droplet,
+  Shield,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -36,7 +38,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { usePatientDetail } from '@/hooks/usePatientDetail'
 import { usePatientMutations } from '@/hooks/usePatientMutations'
-import { useMedicalRecords } from '@/hooks/useMedicalRecords'
+import { usePatientRecords } from '@/hooks/useRecords'
 import { PatientForm } from '@/components/patients/PatientForm'
 import { ExportButton } from '@/components/ExportButton'
 import { formatDate } from '@/lib/exportUtils'
@@ -61,30 +63,36 @@ export default function PatientDetail() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
 
-  const { patient, isLoading, error } = usePatientDetail(id!)
-  const { records, isLoading: isLoadingRecords } = useMedicalRecords(patient?.id || '')
+  const { patient: currentPatient, isLoading, error } = usePatientDetail(id!)
+  const { records: clinicalRecords, isLoading: recordsLoading } = usePatientRecords(currentPatient?.id ?? '')
   const { updatePatient, deactivatePatient, isUpdating, isDeactivating } = usePatientMutations()
 
   function calcAge(dob: string): number {
     if (!dob) return 0
-    const birth = new Date(dob)
-    const today = new Date()
-    let age = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-    return age
+    try {
+      const birth = new Date(dob)
+      const today = new Date()
+      let age = today.getFullYear() - birth.getFullYear()
+      const m = today.getMonth() - birth.getMonth()
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+      return age
+    } catch {
+      return 0
+    }
   }
 
   const handleUpdate = async (data: any) => {
     try {
-      await updatePatient({ id: patient!.id, ...data })
+      if (!currentPatient) return
+      await updatePatient({ id: currentPatient.id, ...data })
       setShowEditDialog(false)
     } catch (err) { }
   }
 
   const handleDeactivate = async () => {
     try {
-      await deactivatePatient(patient!.id)
+      if (!currentPatient) return
+      await deactivatePatient(currentPatient.id)
       setShowDeactivateDialog(false)
     } catch (err) { }
   }
@@ -109,7 +117,7 @@ export default function PatientDetail() {
     )
   }
 
-  if (error || !patient) {
+  if (error || !currentPatient) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center text-center">
         <AlertTriangle className="h-16 w-16 text-[#DC2626]/40 mb-4" />
@@ -140,23 +148,23 @@ export default function PatientDetail() {
           <div className="hidden sm:block h-4 w-px bg-neutral-300"></div>
           
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-neutral-900 tracking-tight leading-none">{patient.full_name}</h1>
+            <h1 className="text-xl font-bold text-neutral-900 tracking-tight leading-none">{currentPatient?.full_name || 'Paciente'}</h1>
             <span className="font-mono text-sm text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded leading-none">
-              {patient.patient_code}
+              {currentPatient?.patient_code || id}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className={cn(
               "gov-status",
-              patient.is_active ? "gov-status-active" : "gov-status-inactive"
+              currentPatient?.is_active ? "gov-status-active" : "gov-status-inactive"
             )}>
-              {patient.is_active ? 'Activo' : 'Inactivo'}
+              {currentPatient?.is_active ? 'Activo' : 'Inactivo'}
             </span>
-            {patient.blood_type && (
+            {currentPatient?.blood_type && (
               <span className="gov-status bg-blue-50 text-blue-700 border-blue-200 gap-1">
                 <Droplet className="h-3 w-3" />
-                {patient.blood_type}
+                {currentPatient.blood_type}
               </span>
             )}
           </div>
@@ -169,22 +177,22 @@ export default function PatientDetail() {
             className="flex-1 sm:flex-none h-9 border-neutral-300 text-neutral-700 hover:bg-neutral-50" 
             label="Exportar Prontuário"
             options={{
-              filename: `prontuario_${patient.patient_code}`,
-              data: records.map(r => ({
+              filename: `prontuario_${currentPatient?.patient_code || 'export'}`,
+              data: (clinicalRecords || []).map(r => ({
                 Data: formatDate(r.occurred_at),
                 Tipo: r.record_type,
                 Título: r.title,
                 Profissional: r.user_profiles?.full_name || 'N/A',
                 Descrição: r.description || 'N/A'
               })),
-              title: `Prontuário Clínico: ${patient.full_name}`,
-              subtitle: `Código: ${patient.patient_code} | BI: ${patient.national_id || 'N/A'} | Idade: ${calcAge(patient.date_of_birth)} anos | Género: ${patient.gender}`
+              title: `Prontuário Clínico: ${currentPatient?.full_name}`,
+              subtitle: `Código: ${currentPatient?.patient_code} | BI: ${currentPatient?.national_id || 'N/A'} | Idade: ${currentPatient ? calcAge(currentPatient.date_of_birth) : 0} anos | Género: ${currentPatient?.gender}`
             }}
           />
           <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none h-9 border-neutral-300 text-neutral-700 hover:bg-neutral-50" onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4" /> <span className="text-xs">Editar</span>
           </Button>
-          {patient.is_active && (
+          {currentPatient?.is_active && (
             <>
               <Button
                 variant="outline"
@@ -206,7 +214,7 @@ export default function PatientDetail() {
                     <AlertDialogTitle className="text-[#DC2626]">Desactivar paciente</AlertDialogTitle>
                     <AlertDialogDescription>
                       Tem a certeza que pretende desactivar{' '}
-                      <strong>{patient.full_name}</strong>?
+                      <strong>{currentPatient?.full_name}</strong>?
                       O registo será mantido no sistema mas o paciente
                       ficará inactivo. Esta acção pode ser revertida
                       pelo administrador.
@@ -237,7 +245,7 @@ export default function PatientDetail() {
             <DialogTitle className="text-xl font-bold text-[#0A5C75]">Editar Prontuário</DialogTitle>
           </DialogHeader>
           <PatientForm
-            initialData={patient}
+            initialData={currentPatient}
             onSubmit={handleUpdate}
             onCancel={() => setShowEditDialog(false)}
             isLoading={isUpdating}
@@ -251,7 +259,7 @@ export default function PatientDetail() {
             <div className="bg-[#0A5C75]/10 p-2.5 rounded shrink-0"><User className="h-5 w-5 text-[#0A5C75]" /></div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Idade / Género</p>
-              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{calcAge(patient.date_of_birth)} anos • {patient.gender}</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{currentPatient ? calcAge(currentPatient.date_of_birth) : 0} anos • {currentPatient?.gender}</p>
             </div>
           </div>
         </div>
@@ -260,7 +268,7 @@ export default function PatientDetail() {
             <div className="bg-[#0891B2]/10 p-2.5 rounded shrink-0"><Phone className="h-5 w-5 text-[#0891B2]" /></div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Contacto</p>
-              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{patient.phone || 'N/A'}</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{currentPatient?.phone || 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -269,7 +277,7 @@ export default function PatientDetail() {
             <div className="bg-[#D97706]/10 p-2.5 rounded shrink-0"><MapPin className="h-5 w-5 text-[#D97706]" /></div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Localização</p>
-              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{patient.municipality}</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{currentPatient?.municipality}</p>
             </div>
           </div>
         </div>
@@ -278,7 +286,7 @@ export default function PatientDetail() {
             <div className="bg-[#059669]/10 p-2.5 rounded shrink-0"><Activity className="h-5 w-5 text-[#059669]" /></div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Identificação Nacional</p>
-              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{patient.national_id || 'N/A'}</p>
+              <p className="font-bold text-sm md:text-base text-neutral-900 truncate">{currentPatient?.national_id || 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -312,12 +320,22 @@ export default function PatientDetail() {
 
             <TabsContent value="history" className="mt-6 space-y-4">
               <div className="relative pl-5 sm:pl-8 border-l-2 border-[#E5E7EB] space-y-6 py-2">
-                {isLoadingRecords ? (
+                {recordsLoading ? (
                   <div className="space-y-4">
-                    {[1, 2].map(i => <div key={i} className="h-24 bg-neutral-100 animate-pulse rounded" />)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-20 w-full animate-pulse rounded-md bg-neutral-100" />)}
                   </div>
-                ) : records.length > 0 ? (
-                  records.map((item, idx) => {
+                ) : clinicalRecords.length === 0 && !recordsLoading ? (
+                  <div className="flex flex-col items-center gap-3 py-10 text-center">
+                    <FileText className="h-8 w-8 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">
+                      Sem registos clínicos para este paciente.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Os registos aparecem após a primeira consulta registada.
+                    </p>
+                  </div>
+                ) : (
+                  clinicalRecords.map((item, idx) => {
                     const Icon = getRecordIcon(item.record_type)
                     return (
                       <div key={item.id} className="relative">
@@ -330,29 +348,21 @@ export default function PatientDetail() {
                               <div>
                                 <h4 className="font-bold text-sm text-neutral-900">{item.title}</h4>
                                 <p className="text-xs text-[#0A5C75] font-medium mt-0.5">
-                                  {item.user_profiles?.full_name || 'Profissional MINSA'}
+                                  {item.user_profiles?.full_name ?? '—'}
                                 </p>
                               </div>
                               <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-1 rounded">
                                 {formatDate(item.occurred_at)}
                               </span>
                             </div>
-                            {item.description && (
-                              <p className="text-sm text-neutral-600 mt-3 bg-neutral-50 p-3 rounded border border-neutral-100">
-                                {item.description}
-                              </p>
-                            )}
+                            <p className="text-sm text-neutral-600 mt-3 bg-neutral-50 p-3 rounded border border-neutral-100">
+                              {item.description ?? item.notes ?? '—'}
+                            </p>
                           </div>
                         </div>
                       </div>
                     )
                   })
-                ) : (
-                  <div className="p-8 border border-dashed border-neutral-300 rounded bg-neutral-50 text-center ml-4">
-                    <p className="text-sm text-neutral-500">
-                      Nenhum registo clínico encontrado para este paciente.
-                    </p>
-                  </div>
                 )}
               </div>
             </TabsContent>
@@ -362,8 +372,8 @@ export default function PatientDetail() {
                 <div>
                   <h4 className="gov-section-title">Alergias Conhecidas</h4>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {patient.allergies.length > 0 ? (
-                      patient.allergies.map(a => (
+                    {(currentPatient?.allergies?.length || 0) > 0 ? (
+                      currentPatient?.allergies?.map(a => (
                         <span key={a} className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded text-xs font-bold tracking-wide">
                           {a}
                         </span>
@@ -379,8 +389,8 @@ export default function PatientDetail() {
                 <div>
                   <h4 className="gov-section-title">Condições Crónicas</h4>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    {patient.chronic_conditions.length > 0 ? (
-                      patient.chronic_conditions.map(c => (
+                    {(currentPatient?.chronic_conditions?.length || 0) > 0 ? (
+                      currentPatient?.chronic_conditions?.map(c => (
                         <span key={c} className="px-3 py-1 bg-[#0A5C75]/10 border border-[#0A5C75]/20 text-[#0A5C75] rounded text-xs font-bold tracking-wide">
                           {c}
                         </span>
@@ -396,7 +406,7 @@ export default function PatientDetail() {
                 <div>
                   <h4 className="gov-section-title">Observações Gerais</h4>
                   <div className="mt-4 p-4 bg-neutral-50 border border-neutral-100 rounded text-sm text-neutral-700 whitespace-pre-wrap">
-                    {patient.notes || <span className="text-neutral-400 italic">Sem observações adicionais registadas.</span>}
+                    {currentPatient?.notes || <span className="text-neutral-400 italic">Sem observações adicionais registadas.</span>}
                   </div>
                 </div>
               </div>
@@ -405,19 +415,19 @@ export default function PatientDetail() {
             <TabsContent value="contacts" className="mt-6">
               <div className="gov-card p-6">
                 <span className="gov-section-title mb-6">Contactos de Emergência</span>
-                {patient.emergency_contact_name ? (
+                {currentPatient?.emergency_contact_name ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <p className="gov-data-label mb-1">Nome Completo</p>
-                      <p className="gov-data-value font-bold">{patient.emergency_contact_name}</p>
+                      <p className="gov-data-value font-bold">{currentPatient.emergency_contact_name}</p>
                     </div>
                     <div>
                       <p className="gov-data-label mb-1">Grau de Parentesco</p>
-                      <p className="gov-data-value text-[#0A5C75] font-bold">{patient.emergency_contact_relation}</p>
+                      <p className="gov-data-value text-[#0A5C75] font-bold">{currentPatient.emergency_contact_relation}</p>
                     </div>
                     <div>
                       <p className="gov-data-label mb-1">Telefone Principal</p>
-                      <p className="gov-data-value font-mono font-medium">{patient.emergency_contact_phone}</p>
+                      <p className="gov-data-value font-mono font-medium">{currentPatient.emergency_contact_phone}</p>
                     </div>
                   </div>
                 ) : (
@@ -440,10 +450,10 @@ export default function PatientDetail() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-tight text-neutral-900 truncate">
-                  {patient.health_units?.name || 'Unidade Desconhecida'}
+                  {currentPatient?.health_units?.name || 'Unidade Desconhecida'}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1 truncate">
-                  {patient.health_units?.municipality}, {patient.health_units?.province}
+                  {currentPatient?.health_units?.municipality}, {currentPatient?.health_units?.province}
                 </p>
               </div>
             </div>
@@ -451,11 +461,11 @@ export default function PatientDetail() {
             <div className="border-t border-neutral-100 pt-2 space-y-0">
               <div className="gov-data-row">
                 <span className="gov-data-label">Inscrição no Sistema</span>
-                <span className="gov-data-value text-xs font-mono">{formatDate(patient.created_at)}</span>
+                <span className="gov-data-value text-xs font-mono">{formatDate(currentPatient?.created_at || '')}</span>
               </div>
               <div className="gov-data-row border-none">
                 <span className="gov-data-label">Última Actualização</span>
-                <span className="gov-data-value text-xs font-mono">{formatDate(patient.updated_at)}</span>
+                <span className="gov-data-value text-xs font-mono">{formatDate(currentPatient?.updated_at || '')}</span>
               </div>
             </div>
           </div>
